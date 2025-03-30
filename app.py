@@ -33,15 +33,17 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 app.register_blueprint(admin_routes)
+import os
 
-# ✅ FIXED: Remove duplicate database connection & use `get_db_connection()` everywhere
 def get_db_connection():
     return psycopg2.connect(
-        host="localhost",
-        dbname="vec_ledger",
-        user="postgres",
-        password="JlzPlz59"
+        host=os.environ["PGHOST"],
+        dbname=os.environ["PGDATABASE"],
+        user=os.environ["PGUSER"],
+        password=os.environ["PGPASSWORD"],
+        port=os.environ["PGPORT"]
     )
+
 
 
 
