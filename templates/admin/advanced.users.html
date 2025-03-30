@@ -1,0 +1,164 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block header %}User Management{% endblock %}
+
+{% block content %}
+<div class="filters" style="margin-bottom: 15px;">
+    <form method="GET">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div class="form-group">
+                <label for="search">Search:</label>
+                <input type="text" id="search" name="search" placeholder="Name or email..." value="{{ search }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="balance_min">Min Balance:</label>
+                <input type="number" id="balance_min" name="balance_min" placeholder="Min VEC" value="{{ balance_min }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="balance_max">Max Balance:</label>
+                <input type="number" id="balance_max" name="balance_max" placeholder="Max VEC" value="{{ balance_max }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="is_admin">Admin Status:</label>
+                <select id="is_admin" name="is_admin">
+                    <option value="">All</option>
+                    <option value="yes" {% if is_admin == 'yes' %}selected{% endif %}>Admin</option>
+                    <option value="no" {% if is_admin == 'no' %}selected{% endif %}>Non-Admin</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+            <div>
+                <button type="submit" class="btn">Filter</button>
+                <a href="{{ url_for('admin_routes.users') }}" class="btn">Reset</a>
+            </div>
+            
+            <div>
+                <label for="per_page">Show:</label>
+                <select id="per_page" name="per_page" onchange="this.form.submit()">
+                    <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+
+<form method="POST" id="bulk-action-form">
+    <div class="bulk-actions" style="margin-bottom: 15px; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div>
+                <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)">
+                <label for="select-all">Select All</label>
+            </div>
+            
+            <select name="bulk_action" id="bulk-action">
+                <option value="">-- Select Action --</option>
+                <option value="make_admin">Make Admin</option>
+                <option value="remove_admin">Remove Admin</option>
+                <option value="export_email">Export Emails</option>
+            </select>
+            
+            <button type="submit" class="btn" id="apply-action" disabled>Apply</button>
+        </div>
+    </div>
+
+    <table>
+        <tr>
+            <th style="width: 40px;"><input type="checkbox" disabled></th>
+            <th>ID</th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>VEC Balance</th>
+            <th>Admin</th>
+            <th>Actions</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>
+                <input type="checkbox" name="selected_users" value="{{ user.id }}" class="user-checkbox">
+            </td>
+            <td>{{ user.id }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.first_name }} {{ user.last_name }}</td>
+            <td>{{ user.balance }}</td>
+            <td>{{ "Yes" if user.is_admin else "No" }}</td>
+            <td>
+                <div class="action-buttons">
+                    <a href="{{ url_for('admin_routes.transactions') }}?user_id={{ user.id }}" class="btn btn-small">Transactions</a>
+                    <a href="{{ url_for('admin_routes.impersonate', user_id=user.id) }}" class="btn btn-small">Impersonate</a>
+                    {% if not user.is_admin %}
+                    <form method="POST" action="{{ url_for('admin_routes.toggle_admin', user_id=user.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small">Make Admin</button>
+                    </form>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('admin_routes.toggle_admin', user_id=user.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small">Remove Admin</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</form>
+
+<!-- Pagination -->
+<div class="pagination" style="margin-top: 20px; text-align: center;">
+    {% if has_prev %}
+    <a href="{{ url_for('admin_routes.users', page=page-1, per_page=per_page, search=search, balance_min=balance_min, balance_max=balance_max, is_admin=is_admin) }}" class="btn btn-small">&laquo; Previous</a>
+    {% else %}
+    <span class="btn btn-small disabled">&laquo; Previous</span>
+    {% endif %}
+    
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    
+    {% if has_next %}
+    <a href="{{ url_for('admin_routes.users', page=page+1, per_page=per_page, search=search, balance_min=balance_min, balance_max=balance_max, is_admin=is_admin) }}" class="btn btn-small">Next &raquo;</a>
+    {% else %}
+    <span class="btn btn-small disabled">Next &raquo;</span>
+    {% endif %}
+</div>
+
+<script>
+    function toggleSelectAll(checkbox) {
+        const userCheckboxes = document.querySelectorAll('.user-checkbox');
+        userCheckboxes.forEach(cb => {
+            cb.checked = checkbox.checked;
+        });
+        updateApplyButton();
+    }
+    
+    document.querySelectorAll('.user-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateApplyButton);
+    });
+    
+    function updateApplyButton() {
+        const selected = document.querySelectorAll('.user-checkbox:checked').length;
+        const actionSelect = document.getElementById('bulk-action');
+        const applyButton = document.getElementById('apply-action');
+        
+        applyButton.disabled = selected === 0 || actionSelect.value === '';
+    }
+    
+    document.getElementById('bulk-action').addEventListener('change', updateApplyButton);
+    
+    document.getElementById('bulk-action-form').addEventListener('submit', function(e) {
+        const selected = document.querySelectorAll('.user-checkbox:checked').length;
+        const action = document.getElementById('bulk-action').value;
+        
+        if (selected === 0 || action === '') {
+            e.preventDefault();
+            alert('Please select users and an action to perform.');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,225 @@
+@admin_routes.route('/dashboard')
+@admin_required
+def dashboard():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    # System health at a glance
+    cursor.execute("""
+        SELECT 
+            (SELECT COUNT(*) FROM users) as user_count,
+            (SELECT COUNT(*) FROM transactions WHERE transaction_date > NOW() - INTERVAL '24 hours') as transactions_24h,
+            (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '7 days') as new_users_7d,
+            (SELECT SUM(amount) FROM burn_certificates WHERE burn_date > NOW() - INTERVAL '30 days') as burned_30d,
+            (SELECT COUNT(*) FROM burn_certificates WHERE burn_date > NOW() - INTERVAL '24 hours') as certificates_24h
+    """)
+    
+    stats = cursor.fetchone()
+    
+    # Calculate growth rates
+    cursor.execute("""
+        SELECT 
+            -- User growth: Compare users created in last 7 days vs previous 7 days
+            (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '7 days') as recent_users,
+            (SELECT COUNT(*) FROM users WHERE created_at BETWEEN NOW() - INTERVAL '14 days' AND NOW() - INTERVAL '7 days') as previous_users,
+            
+            -- Transaction growth: Compare 24h vs previous 24h
+            (SELECT COUNT(*) FROM transactions WHERE transaction_date > NOW() - INTERVAL '24 hours') as recent_transactions,
+            (SELECT COUNT(*) FROM transactions WHERE transaction_date BETWEEN NOW() - INTERVAL '48 hours' AND NOW() - INTERVAL '24 hours') as previous_transactions,
+            
+            -- Burn growth: Compare 7 days vs previous 7 days
+            (SELECT SUM(amount) FROM burn_certificates WHERE burn_date > NOW() - INTERVAL '7 days') as recent_burns,
+            (SELECT SUM(amount) FROM burn_certificates WHERE burn_date BETWEEN NOW() - INTERVAL '14 days' AND NOW() - INTERVAL '7 days') as previous_burns,
+            
+            -- Daily volume
+            (SELECT SUM(amount) FROM transactions WHERE transaction_date > NOW() - INTERVAL '24 hours') as daily_volume
+    """)
+    
+    growth_data = cursor.fetchone()
+    
+    # Calculate percentage changes
+    user_growth_rate = calculate_growth_rate(growth_data['recent_users'], growth_data['previous_users'])
+    transaction_growth_rate = calculate_growth_rate(growth_data['recent_transactions'], growth_data['previous_transactions'])
+    burn_growth_rate = calculate_growth_rate(growth_data['recent_burns'] or 0, growth_data['previous_burns'] or 0)
+    daily_volume = growth_data['daily_volume'] or 0
+    
+    # Determine system health
+    system_health = 'good'
+    health_message = 'All systems operational'
+    
+    # Check for potential issues
+    if stats['transactions_24h'] == 0:
+        system_health = 'warning'
+        health_message = 'No transactions in last 24h'
+    
+    # User growth over time (last 6 months)
+    cursor.execute("""
+        SELECT 
+            DATE_TRUNC('month', created_at) as month,
+            COUNT(*) as new_users
+        FROM users
+        WHERE created_at > NOW() - INTERVAL '6 months'
+        GROUP BY DATE_TRUNC('month', created_at)
+        ORDER BY month
+    """)
+    
+    user_growth = cursor.fetchall()
+    
+    # Token supply data
+    cursor.execute("""
+        SELECT SUM(amount) as total FROM transactions 
+        WHERE sender_id = 1 AND transaction_type != 'minting_fee'
+    """)
+    total_minted = cursor.fetchone()['total'] or 0
+    
+    cursor.execute("SELECT SUM(amount) as total FROM burn_certificates")
+    total_burned = cursor.fetchone()['total'] or 0
+    
+    circulating_supply = total_minted - total_burned
+    
+    # Get monthly mint/burn data for chart
+    cursor.execute("""
+        WITH months AS (
+            SELECT generate_series(
+                date_trunc('month', NOW()) - interval '5 month',
+                date_trunc('month', NOW()),
+                interval '1 month'
+            ) as month
+        ),
+        monthly_mints AS (
+            SELECT 
+                DATE_TRUNC('month', transaction_date) as month,
+                SUM(amount) as amount
+            FROM transactions
+            WHERE 
+                sender_id = 1 
+                AND transaction_type != 'minting_fee'
+                AND transaction_date > NOW() - INTERVAL '6 months'
+            GROUP BY month
+        ),
+        monthly_burns AS (
+            SELECT 
+                DATE_TRUNC('month', burn_date) as month,
+                SUM(amount) as amount
+            FROM burn_certificates
+            WHERE burn_date > NOW() - INTERVAL '6 months'
+            GROUP BY month
+        )
+        SELECT 
+            months.month,
+            COALESCE(mm.amount, 0) as minted,
+            COALESCE(mb.amount, 0) as burned
+        FROM months
+        LEFT JOIN monthly_mints mm ON months.month = mm.month
+        LEFT JOIN monthly_burns mb ON months.month = mb.month
+        ORDER BY months.month
+    """)
+    
+    supply_data = cursor.fetchall()
+    
+    # Prepare chart data
+    months = [row['month'].strftime('%b %Y') for row in supply_data]
+    mint_amounts = [float(row['minted']) for row in supply_data]
+    burn_amounts = [float(row['burned']) for row in supply_data]
+    
+    # Calculate net supply for each month
+    net_supply = []
+    running_total = circulating_supply - sum(mint_amounts) + sum(burn_amounts)
+    for i in range(len(months)):
+        running_total += mint_amounts[i] - burn_amounts[i]
+        net_supply.append(round(running_total, 2))
+    
+    # Recent activity feed - combine transactions and certificates
+    cursor.execute("""
+        (SELECT 
+            'transaction' as activity_type,
+            t.id as activity_id,
+            t.transaction_date as activity_date,
+            u1.email as actor,
+            u2.email as target,
+            t.amount,
+            t.transaction_type as action
+        FROM transactions t
+        JOIN users u1 ON t.sender_id = u1.id
+        JOIN users u2 ON t.receiver_id = u2.id
+        ORDER BY t.transaction_date DESC
+        LIMIT 5)
+        
+        UNION ALL
+        
+        (SELECT
+            'certificate' as activity_type,
+            bc.id as activity_id,
+            bc.burn_date as activity_date,
+            u.email as actor,
+            bc.recipient_name as target,
+            bc.amount,
+            'burn_certificate' as action
+        FROM burn_certificates bc
+        JOIN users u ON bc.user_id = u.id
+        ORDER BY bc.burn_date DESC
+        LIMIT 5)
+        
+        ORDER BY activity_date DESC
+        LIMIT 10
+    """)
+    
+    recent_activity = cursor.fetchall()
+    
+    # Top users by activity
+    cursor.execute("""
+        SELECT 
+            u.email,
+            COUNT(t.*) as transaction_count,
+            SUM(CASE WHEN t.sender_id = u.id THEN t.amount ELSE 0 END) as sent,
+            SUM(CASE WHEN t.receiver_id = u.id THEN t.amount ELSE 0 END) as received
+        FROM users u
+        LEFT JOIN transactions t ON u.id = t.sender_id OR u.id = t.receiver_id
+        WHERE t.transaction_date > NOW() - INTERVAL '30 days'
+        GROUP BY u.id
+        ORDER BY transaction_count DESC
+        LIMIT 5
+    """)
+    
+    top_users = cursor.fetchall()
+    
+    # Recent admin actions
+    cursor.execute("""
+        SELECT al.*, u.email as admin_email
+        FROM admin_audit_log al
+        JOIN users u ON al.admin_id = u.id
+        ORDER BY al.created_at DESC
+        LIMIT 5
+    """)
+    
+    admin_logs = cursor.fetchall()
+    
+    cursor.close()
+    return_db_connection(conn)
+    
+    return render_template("admin/dashboard.html", 
+                          stats=stats,
+                          user_growth=user_growth,
+                          user_growth_rate=user_growth_rate,
+                          transaction_growth_rate=transaction_growth_rate,
+                          burn_growth_rate=burn_growth_rate,
+                          daily_volume=daily_volume,
+                          system_health=system_health,
+                          health_message=health_message,
+                          total_minted=total_minted,
+                          total_burned=total_burned,
+                          circulating_supply=circulating_supply,
+                          months=months,
+                          mint_amounts=mint_amounts,
+                          burn_amounts=burn_amounts,
+                          net_supply=net_supply,
+                          top_users=top_users,
+                          recent_activity=recent_activity,
+                          admin_logs=admin_logs,
+                          volume_data=[])  # Keep for backward compatibility
+
+# Helper function to calculate growth rate
+def calculate_growth_rate(current, previous):
+    if not previous or previous == 0:
+        return 0
+    return round(((current - previous) / previous) * 100)

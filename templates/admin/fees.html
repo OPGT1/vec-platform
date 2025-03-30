@@ -1,0 +1,59 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Fee Structure{% endblock %}
+
+{% block header %}Fee Structure Management{% endblock %}
+
+{% block content %}
+<div class="form-container" style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <h2>Update Fee Structure</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="fee_type">Fee Type:</label>
+            <select id="fee_type" name="fee_type" required>
+                <option value="verification">Verification Fee (per kWh)</option>
+                <option value="minting">Minting Fee (percentage)</option>
+                <option value="trading">Trading Fee (percentage)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="rate">Rate:</label>
+            <input type="number" id="rate" name="rate" step="0.0001" min="0" max="1" required>
+            <small>Enter as decimal (e.g., 0.02 for 2%)</small>
+        </div>
+        
+        <button type="submit" class="btn">Add New Fee Structure</button>
+    </form>
+</div>
+
+<h2>Fee History</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Fee Type</th>
+        <th>Rate</th>
+        <th>Effective Date</th>
+    </tr>
+    {% for fee in fees %}
+    <tr>
+        <td>{{ fee.id }}</td>
+        <td>{{ fee.fee_type }}</td>
+        <td>{{ fee.rate * 100 }}%</td>
+        <td>{{ fee.effective_date }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div style="margin-top: 20px;">
+    <h3>Current Fee Structure</h3>
+    <p>The system uses the most recent fee structure for each fee type.</p>
+    
+    <h4>Fee Type Descriptions:</h4>
+    <ul>
+        <li><strong>Verification Fee:</strong> Applied per kWh when energy production is verified</li>
+        <li><strong>Minting Fee:</strong> Percentage fee applied when new VECs are minted from verified energy</li>
+        <li><strong>Trading Fee:</strong> Percentage fee applied when VECs are transferred between users</li>
+    </ul>
+</div>
+{% endblock %}

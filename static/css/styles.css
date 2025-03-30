@@ -1,0 +1,368 @@
+/* Basic reset and fonts */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+  padding: 20px;
+  background-color: #f7f9fc;
+}
+
+/* Header styling */
+h1, h2, h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+/* Welcome header */
+h1 {
+  font-size: 24px;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 10px;
+}
+
+/* Transaction table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+table th {
+  background-color: #f2f2f2;
+  text-align: left;
+  padding: 12px;
+  font-weight: 600;
+}
+
+table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+/* Add zebra striping for better readability */
+table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Hover effect for rows */
+table tr:hover {
+  background-color: #f0f7ff;
+}
+
+/* Balance display */
+.balance {
+  font-size: 24px;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: white;
+  border-left: 4px solid #4CAF50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.balance-amount {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* Button styling */
+.btn {
+  display: inline-block;
+  background-color: #4285f4;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  transition: background-color 0.3s;
+}
+
+.btn:hover {
+  background-color: #3367d6;
+}
+
+/* Logout link */
+.logout-link {
+  color: #4285f4;
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.logout-link:hover {
+  text-decoration: underline;
+}
+
+/* Status message */
+.status-message {
+  margin: 10px 0;
+  padding: 8px;
+  background-color: #e8f5e9;
+  border-left: 3px solid #4CAF50;
+}
+
+/* Credit package styling */
+.package {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  width: 200px;
+  background-color: white;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.package:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.package input[type="radio"] {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+.package label {
+  display: block;
+  cursor: pointer;
+}
+
+.payment-details {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.btn-large {
+  padding: 12px 24px;
+  font-size: 18px;
+}
+
+.navigation-links {
+  margin-top: 20px;
+}
+
+/* Price indicator section */
+.price-indicator {
+  background: linear-gradient(to right, #f8f9fa, #e8f5e9);
+  border-left: 5px solid #28a745;
+  padding: 15px 20px;
+  margin: 20px 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.price-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.price-indicator h3 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+  position: relative;
+  z-index: 2;
+}
+
+/* Price value styling */
+.current-price {
+  display: inline-block;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  position: relative;
+  z-index: 2;
+  animation: pricePulse 2s ease-in-out;
+}
+
+/* Add a decorative element in the background */
+.price-indicator::after {
+  content: '$';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 6rem;
+  color: rgba(40, 167, 69, 0.07);
+  font-weight: bold;
+  z-index: 1;
+}
+
+/* Add a "NEW" badge */
+.price-indicator h3::after {
+  content: 'NEW';
+  display: inline-block;
+  background-color: #ff6b6b;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 10px;
+  vertical-align: top;
+  animation: badgePulse 1.5s infinite;
+}
+
+/* Pulse animation for the price */
+@keyframes pricePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Pulse animation for the badge */
+@keyframes badgePulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Last updated text */
+.price-indicator small {
+  display: block;
+  font-style: italic;
+  color: #6c757d;
+  margin-top: 5px;
+  position: relative;
+  z-index: 2;
+}
+
+
+/* Impact visualization section */
+.impact-visualization {
+  background: linear-gradient(to right, #e8f5e9, #f1f8e9);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.impact-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+  margin: 15px 0;
+}
+
+.impact-card {
+  flex: 1;
+  min-width: 200px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.impact-card:hover {
+  transform: translateY(-5px);
+}
+
+.impact-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.impact-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.impact-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.impact-note {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  text-align: center;
+  margin-top: 15px;
+}
+
+.impact-coming-soon {
+  display: inline-block;
+  background-color: #3498db;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 10px;
+  font-size: 0.8rem;
+}
+
+.upload-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.preview-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.confirmation-form {
+  margin-top: 20px;
+  text-align: center;
+}
+
+input[type="file"] {
+  border: 1px solid #ddd;
+  padding: 10px;
+  width: 100%;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+
+

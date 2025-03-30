@@ -1,0 +1,69 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Admin Audit Log{% endblock %}
+
+{% block header %}Admin Audit Log{% endblock %}
+
+{% block content %}
+<div class="filters">
+    <form method="GET">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div>
+                <label for="per_page">Show:</label>
+                <select id="per_page" name="per_page" onchange="this.form.submit()">
+                    <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">Apply</button>
+        </div>
+    </form>
+</div>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Admin</th>
+        <th>Action</th>
+        <th>Entity Type</th>
+        <th>Entity ID</th>
+        <th>Details</th>
+        <th>IP Address</th>
+        <th>Date/Time</th>
+    </tr>
+    {% for log in logs %}
+    <tr>
+        <td>{{ log.id }}</td>
+        <td>{{ log.admin_email }}</td>
+        <td>{{ log.action }}</td>
+        <td>{{ log.entity_type }}</td>
+        <td>{{ log.entity_id }}</td>
+        <td>
+            {% if log.details %}
+            <pre>{{ log.details|tojson }}</pre>
+            {% endif %}
+        </td>
+        <td>{{ log.ip_address }}</td>
+        <td>{{ log.created_at }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<!-- Pagination -->
+<div class="pagination" style="margin-top: 20px; text-align: center;">
+    {% if page > 1 %}
+    <a href="{{ url_for('admin_routes.audit_log', page=page-1, per_page=per_page) }}" class="btn btn-small">&laquo; Previous</a>
+    {% else %}
+    <span class="btn btn-small disabled">&laquo; Previous</span>
+    {% endif %}
+    
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    
+    {% if page < total_pages %}
+    <a href="{{ url_for('admin_routes.audit_log', page=page+1, per_page=per_page) }}" class="btn btn-small">Next &raquo;</a>
+    {% else %}
+    <span class="btn btn-small disabled">Next &raquo;</span>
+    {% endif %}
+</div>
+{% endblock %}

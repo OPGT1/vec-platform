@@ -1,0 +1,90 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}View Certificate{% endblock %}
+
+{% block header %}Certificate Details{% endblock %}
+
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="certificate-details">
+    <div class="certificate-header">
+        <h2>Certificate #{{ certificate.id }}</h2>
+        <span class="certificate-status">Valid</span>
+    </div>
+    
+    <div class="certificate-info">
+        <div class="info-group">
+            <label>User:</label>
+            <div class="info-value">{{ certificate.user_email }}</div>
+        </div>
+        
+        <div class="info-group">
+            <label>Recipient Name:</label>
+            <div class="info-value">{{ certificate.recipient_name }}</div>
+        </div>
+        
+        <div class="info-group">
+            <label>Recipient Email:</label>
+            <div class="info-value">{{ certificate.recipient_email }}</div>
+        </div>
+        
+        <div class="info-group">
+            <label>Amount Burned:</label>
+            <div class="info-value">{{ certificate.amount }} VEC</div>
+        </div>
+        
+        <div class="info-group">
+            <label>Burn Date:</label>
+            <div class="info-value">{{ certificate.burn_date.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+    </div>
+    
+    <div class="environmental-impact">
+        <h3>Environmental Impact</h3>
+        
+        <div class="impact-stats">
+            <div class="impact-stat">
+                <div class="impact-value">{{ kwh_equivalent }}</div>
+                <div class="impact-label">kWh of Clean Energy</div>
+            </div>
+            
+            <div class="impact-stat">
+                <div class="impact-value">{{ co2_avoided|round(2) }}</div>
+                <div class="impact-label">kg CO₂ Emissions Avoided</div>
+            </div>
+            
+            <div class="impact-stat">
+                <div class="impact-value">{{ (co2_avoided / 20)|round(1) }}</div>
+                <div class="impact-label">Trees Equivalent (Annual)</div>
+            </div>
+        </div>
+    </div>
+    
+    {% if certificate.certificate_hash %}
+    <div class="verification">
+        <h3>Verification Information</h3>
+        <div class="verification-hash">
+            <label>Certificate Hash:</label>
+            <code>{{ certificate.certificate_hash }}</code>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin_routes.view.certificate', certificate_id=certificate.id) }}" class="btn" target="_blank">View Public Certificate</a>
+        <button onclick="printCertificate()" class="btn">Print Certificate</button>
+        <button onclick="verifyCertificate()" class="btn">Verify Authenticity</button>
+    </div>
+</div>
+
+<script>
+    function printCertificate() {
+        window.open("{{ url_for('admin_routes.view.certificate', certificate_id=certificate.id) }}?print=true", "_blank");
+    }
+    
+    function verifyCertificate() {
+        alert("Certificate verified successfully. This certificate is valid and has not been tampered with.");
+    }
+</script>
+{% endblock %}

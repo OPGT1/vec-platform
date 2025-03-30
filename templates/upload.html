@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Data</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+</head>
+<body>
+    <div class="header-area">
+        <div class="user-welcome">Welcome, {{ email }}</div>
+        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+
+    <h2>Upload VEC Data</h2>
+    
+    <div class="upload-container">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Select CSV File:</label>
+                <input type="file" name="file" id="file" accept=".csv" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="upload_type">Upload Type:</label>
+                <select name="upload_type" id="upload_type" required>
+                    <option value="energy_production">Energy Production Data</option>
+                    <option value="transaction_history">Transaction History</option>
+                    <option value="user_data">User Data</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn">Upload File</button>
+        </form>
+    </div>
+    
+    {% if preview_data %}
+    <div class="preview-container">
+        <h3>File Preview</h3>
+        <table class="table">
+            <tr>
+                {% for header in preview_data[0] %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+            {% for row in preview_data[1:6] %}
+            <tr>
+                {% for cell in row %}
+                <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <div class="confirmation-form">
+            <form method="POST" action="{{ url_for('process_upload') }}">
+                <input type="hidden" name="filename" value="{{ filename }}">
+                <input type="hidden" name="upload_type" value="{{ upload_type }}">
+                <button type="submit" class="btn">Confirm Import</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="navigation-links">
+        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+    </div>
+</body>
+</html>

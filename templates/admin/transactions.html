@@ -1,0 +1,123 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Transactions{% endblock %}
+
+{% block header %}Transaction History{% endblock %}
+
+{% block content %}
+<div class="filters">
+    <form method="GET">
+        <div class="form-group">
+            <label for="type">Transaction Type:</label>
+            <select id="type" name="type">
+                <option value="">All Types</option>
+                {% for type in transaction_types %}
+                <option value="{{ type }}" {% if selected_type == type %}selected{% endif %}>{{ type or 'transfer' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+        </div>
+        
+        <button type="submit" class="btn">Filter</button>
+        <a href="{{ url_for('admin_routes.transactions') }}" class="btn">Reset</a>
+    </form>
+</div>
+
+<div class="stats" style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div class="stat-card">
+        <h3>Total Transactions</h3>
+        <div class="value">{{ transactions|length }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Total Volume</h3>
+        <div class="value">${{ transactions|sum(attribute='amount')|round(2) }}</div>
+    </div>
+</div>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Sender</th>
+        <th>Receiver</th>
+        <th>Amount</th>
+        <th>Type</th>
+        <th>Date</th>
+    </tr>
+    {% for transaction in transactions %}
+    <tr>
+        <td>{{ transaction.id }}</td>
+        <td>{{ transaction.sender }}</td>
+        <td>{{ transaction.receiver }}</td>
+        <td>${{ transaction.amount }}</td>
+        <td>{{ transaction.transaction_type or 'transfer' }}</td>
+        <td>{{ transaction.transaction_date }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div style="margin-top: 20px; text-align: center;">
+    <button onclick="exportToCSV()" class="btn">Export to CSV</button>
+</div>
+
+<script>
+    function exportToCSV() {
+        // Get the table
+        const table = document.querySelector('table');
+        
+        // Create CSV content
+        let csv = [];
+        
+        // Add headers
+        let headers = [];
+        const headerCells = table.querySelectorAll('th');
+        headerCells.forEach(cell => {
+            headers.push(cell.textContent.trim());
+        });
+        csv.push(headers.join(','));
+        
+        // Add rows
+        const rows = table.querySelectorAll('tr');
+        rows.forEach((row, index) => {
+            if (index === 0) return; // Skip header row
+            
+            let rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                // Remove $ sign from amounts
+                let text = cell.textContent.trim().replace('$', '');
+                rowData.push(text);
+            });
+            
+            csv.push(rowData.join(','));
+        });
+        
+        // Create CSV file
+        const csvContent = csv.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'transactions.csv');
+        link.style.display = 'none';
+        
+        // Add to page and trigger download
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy VEC Credits</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+</head>
+<body>
+    <h1>Buy VEC Credits</h1>
+    <p>You are logged in as {{ email }}</p>
+    <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    
+    <div class="balance">
+        Current Balance: <span class="balance-amount">${{ balance }}</span>
+    </div>
+    
+    <h2>Select Credit Package</h2>
+    
+    <form method="POST" action="{{ url_for('process_purchase') }}">
+        <div class="credit-packages">
+            <div class="package">
+                <input type="radio" id="package1" name="package" value="100" checked>
+                <label for="package1">
+                    <strong>Starter Package</strong>
+                    <p>100 VEC Credits</p>
+                    <p class="price">$500.00</p>
+                </label>
+            </div>
+            
+            <div class="package">
+                <input type="radio" id="package2" name="package" value="500">
+                <label for="package2">
+                    <strong>Standard Package</strong>
+                    <p>500 VEC Credits</p>
+                    <p class="price">$2,500.00</p>
+                </label>
+            </div>
+            
+            <div class="package">
+                <input type="radio" id="package3" name="package" value="1000">
+                <label for="package3">
+                    <strong>Premium Package</strong>
+                    <p>1000 VEC Credits</p>
+                    <p class="price">$5,000.00</p>
+                </label>
+            </div>
+            
+            <h3>Payment Information</h3>
+            <!-- This section would be replaced by Stripe Elements in production -->
+            <div class="payment-details">
+                <div class="form-group">
+                    <label for="card-number">Card Number</label>
+                    <input type="text" id="card-number" placeholder="1234 5678 9012 3456" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expiry">Expiration Date</label>
+                        <input type="text" id="expiry" placeholder="MM/YY" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cvc">CVC</label>
+                        <input type="text" id="cvc" placeholder="123" required>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-large">Complete Purchase</button>
+        </div>
+    </form>
+    
+    <div class="navigation-links">
+        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+    </div>
+    
+    <!-- This would be replaced with Stripe JS in production -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simple calculation of price based on package selection
+            const packageRadios = document.querySelectorAll('input[name="package"]');
+            packageRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    console.log('Selected package: ' + this.value + ' credits');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

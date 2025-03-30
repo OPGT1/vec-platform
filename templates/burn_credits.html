@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burn VEC Credits</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+</head>
+<body>
+    <div class="header-area">
+        <div class="user-welcome">Welcome, {{ email }}</div>
+        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+
+    <h2>Burn VEC Credits</h2>
+    
+    <div class="burn-info">
+        <p>When you burn VEC credits, you permanently remove them from circulation and receive a certificate 
+        confirming your environmental impact. This process is ideal for businesses looking to offset their 
+        carbon footprint or demonstrate their commitment to renewable energy.</p>
+        
+        <div class="impact-note">
+            <strong>Impact Conversion:</strong> Each VEC represents 10 kWh of clean energy, which prevents approximately 3.5 kg of CO₂ emissions.
+        </div>
+    </div>
+    
+    <form method="POST" action="{{ url_for('burn_credits') }}">
+        <div class="form-group">
+            <label for="amount">Amount to Burn (VEC):</label>
+            <input type="number" name="amount" id="amount" step="0.01" min="0.01" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="certificate_name">Certificate Recipient Name:</label>
+            <input type="text" name="certificate_name" id="certificate_name" required>
+            <small>Company or individual name to appear on the certificate</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="certificate_email">Certificate Recipient Email:</label>
+            <input type="email" name="certificate_email" id="certificate_email" required>
+            <small>Where to send the certificate notification</small>
+        </div>
+        
+        <div id="impact-preview" class="impact-preview" style="display: none;">
+            <h3>Estimated Impact</h3>
+            <div class="impact-cards">
+                <div class="impact-card">
+                    <div class="impact-icon">⚡</div>
+                    <div class="impact-value" id="kwh-value">0</div>
+                    <div class="impact-label">kWh of Clean Energy</div>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-icon">🌍</div>
+                    <div class="impact-value" id="co2-value">0</div>
+                    <div class="impact-label">kg CO₂ Emissions Avoided</div>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn">Burn Credits & Generate Certificate</button>
+    </form>
+
+    <div class="balance">
+        Available Balance: <span class="balance-amount">{{ balance }} VEC</span>
+    </div>
+    
+    <div class="navigation-links">
+        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        <a href="{{ url_for('my_certificates') }}">View My Certificates</a>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInput = document.getElementById('amount');
+            const impactPreview = document.getElementById('impact-preview');
+            const kwhValue = document.getElementById('kwh-value');
+            const co2Value = document.getElementById('co2-value');
+            
+            amountInput.addEventListener('input', function() {
+                const amount = parseFloat(this.value) || 0;
+                
+                if (amount > 0) {
+                    impactPreview.style.display = 'block';
+                    
+                    // Calculate impact (1 VEC = 10 kWh, 1 kWh = 0.7 kg CO2)
+                    const kwhEquivalent = amount * 10;
+                    const co2Avoided = kwhEquivalent * 0.7;
+                    
+                    kwhValue.textContent = kwhEquivalent.toFixed(2);
+                    co2Value.textContent = co2Avoided.toFixed(2);
+                } else {
+                    impactPreview.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

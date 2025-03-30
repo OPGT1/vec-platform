@@ -1,0 +1,329 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Token Supply{% endblock %}
+
+{% block header %}Token Supply Management{% endblock %}
+
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Total Minted</h3>
+        <div class="value">{{ total_minted|default(0)|round(2) }} VEC</div>
+        <small>Total tokens created from energy</small>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Total Burned</h3>
+        <div class="value">{{ total_burned|default(0)|round(2) }} VEC</div>
+        <small>Tokens permanently removed</small>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Circulating Supply</h3>
+        <div class="value">{{ circulating_supply|default(0)|round(2) }} VEC</div>
+        <small>Active tokens in circulation</small>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Burn Rate</h3>
+        <div class="value">{{ (total_burned / total_minted * 100)|round(2) if total_minted and total_minted > 0 else 0 }}%</div>
+        <small>Percentage of total burned</small>
+    </div>
+</div>
+
+<div class="time-filter" style="background-color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <form method="GET" class="inline-form">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="form-group" style="margin: 0;">
+                <label for="period">Time Period:</label>
+                <select id="period" name="period" onchange="this.form.submit()">
+                    <option value="month" {% if request.args.get('period') == 'month' %}selected{% endif %}>Last Month</option>
+                    <option value="quarter" {% if request.args.get('period') == 'quarter' %}selected{% endif %}>Last Quarter</option>
+                    <option value="year" {% if request.args.get('period') == 'year' or not request.args.get('period') %}selected{% endif %}>Last Year</option>
+                    <option value="all" {% if request.args.get('period') == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label for="grouping">Group By:</label>
+                <select id="grouping" name="grouping" onchange="this.form.submit()">
+                    <option value="day" {% if request.args.get('grouping') == 'day' %}selected{% endif %}>Day</option>
+                    <option value="week" {% if request.args.get('grouping') == 'week' %}selected{% endif %}>Week</option>
+                    <option value="month" {% if request.args.get('grouping') == 'month' or not request.args.get('grouping') %}selected{% endif %}>Month</option>
+                </select>
+            </div>
+            <button type="submit" class="btn" style="margin-left: auto;">Update</button>
+        </div>
+    </form>
+</div>
+
+<div class="dashboard-section" style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div class="chart-section" style="flex: 2; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3>Minting & Burning History</h3>
+        <div class="chart-container" style="position: relative; height: 300px;">
+            <canvas id="supplyChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="token-distribution" style="flex: 1; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3>Current Distribution</h3>
+        <div class="chart-container" style="position: relative; height: 220px;">
+            <canvas id="distributionChart"></canvas>
+        </div>
+        <div class="chart-legend" style="margin-top: 15px; font-size: 0.85rem;">
+            <div><span style="display: inline-block; width: 10px; height: 10px; background-color: #2ecc71; margin-right: 5px;"></span> Active ({{ (circulating_supply / total_minted * 100)|round(1) if total_minted and total_minted > 0 else 0 }}%)</div>
+            <div><span style="display: inline-block; width: 10px; height: 10px; background-color: #e74c3c; margin-right: 5px;"></span> Burned ({{ (total_burned / total_minted * 100)|round(1) if total_minted and total_minted > 0 else 0 }}%)</div>
+            <div><span style="display: inline-block; width: 10px; height: 10px; background-color: #3498db; margin-right: 5px;"></span> Reserved ({{ (reserved_supply|default(0) / total_minted * 100)|round(1) if total_minted and total_minted > 0 else 0 }}%)</div>
+        </div>
+    </div>
+</div>
+
+<div class="clean-energy-impact" style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;">
+    <h3>Clean Energy Impact</h3>
+    <div class="impact-metrics" style="display: flex; gap: 20px; margin-top: 15px;">
+        <div style="flex: 1; text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{ (total_minted|default(0)|float * 5)|round(2) }}
+            <div>kWh of clean energy generated</div>
+        </div>
+        <div style="flex: 1; text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{ (total_minted|default(0)|float * 5 * 0.7)|round(2) }}
+            <div>kg CO₂ emissions avoided through generation</div>
+        </div>
+        <div style="flex: 1; text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold; color: #e74c3c;">{{ (total_burned|default(0)|float * 5)|round(2) }}
+            <div>kWh of clean energy consumption verified</div>
+        </div>
+    </div>
+</div>
+
+<div class="upcoming-changes" style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <h3>Upcoming System Changes</h3>
+    <div class="change-card" style="margin-top: 15px;">
+        <h4>Energy Representation Upgrade</h4>
+        <p>Planned change from 5 kWh to 10 kWh per VEC</p>
+        <div class="progress" style="height: 20px; background-color: #ecf0f1; border-radius: 10px; margin: 10px 0; overflow: hidden;">
+            <div class="progress-bar" style="width: 60%; height: 100%; background-color: #3498db; text-align: center; line-height: 20px; color: white;">60% Complete</div>
+        </div>
+        
+        <button class="btn upgrade-btn" id="manageUpgradeBtn">Manage Upgrade</button>
+    </div>
+</div>
+
+<!-- Upgrade Modal (Hidden by default) -->
+<div id="upgradeModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: white; margin: 10% auto; padding: 20px; width: 60%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+        <span class="close" style="float: right; cursor: pointer; font-size: 24px;">&times;</span>
+        <h2>Manage Energy Representation Upgrade</h2>
+        
+        <div style="margin: 20px 0;">
+            <h4>Upgrade Progress: 60%</h4>
+            <ul>
+                <li>✅ Technical specification finalized</li>
+                <li>✅ Database schema updates designed</li>
+                <li>✅ Smart contract audited</li>
+                <li>⏳ User notification system in progress</li>
+                <li>⏳ Conversion tool development in progress</li>
+                <li>❌ Final testing not started</li>
+                <li>❌ Deployment not started</li>
+            </ul>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <h4>Schedule Implementation</h4>
+            <form id="upgradeForm">
+                <div class="form-group">
+                    <label for="upgrade-date">Planned Upgrade Date:</label>
+                    <input type="date" id="upgrade-date" name="upgrade-date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notification-date">User Notification Date:</label>
+                    <input type="date" id="notification-date" name="notification-date" required>
+                </div>
+                
+                <button type="submit" class="btn">Save Schedule</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Supply Chart
+        const supplyCtx = document.getElementById('supplyChart').getContext('2d');
+        
+        const months = {{ months|default([])|tojson }};
+        const mintAmounts = {{ mint_amounts|default([])|tojson }};
+        const burnAmounts = {{ burn_amounts|default([])|tojson }};
+        
+        // Calculate cumulative supply for a line
+        const cumulativeSupply = [];
+        let runningTotal = 0;
+        
+        for (let i = 0; i < months.length; i++) {
+            runningTotal += (mintAmounts[i] || 0) - (burnAmounts[i] || 0);
+            cumulativeSupply.push(runningTotal);
+        }
+        
+        const supplyChart = new Chart(supplyCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Minted',
+                        data: mintAmounts,
+                        backgroundColor: 'rgba(46, 204, 113, 0.3)',
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1,
+                        order: 2
+                    },
+                    {
+                        label: 'Burned',
+                        data: burnAmounts,
+                        backgroundColor: 'rgba(231, 76, 60, 0.3)',
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 1,
+                        order: 1
+                    },
+                    {
+                        label: 'Total Supply',
+                        data: cumulativeSupply,
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+                        tension: 0.1,
+                        order: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'VEC Tokens'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time Period'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                if (context.dataset.label === 'Total Supply') {
+                                    return `Total Supply: ${value.toFixed(2)} VEC`;
+                                }
+                                return `${context.dataset.label}: ${value.toFixed(2)} VEC`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Distribution Chart - Doughnut chart for current token distribution
+        const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+        
+        const circulatingSupply = {{ circulating_supply|default(0) }};
+        const totalBurned = {{ total_burned|default(0) }};
+        const reservedSupply = {{ reserved_supply|default(0) }};
+        
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Burned', 'Reserved'],
+                datasets: [{
+                    data: [circulatingSupply, totalBurned, reservedSupply],
+                    backgroundColor: [
+                        'rgba(46, 204, 113, 0.8)',
+                        'rgba(231, 76, 60, 0.8)',
+                        'rgba(52, 152, 219, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(46, 204, 113, 1)',
+                        'rgba(231, 76, 60, 1)',
+                        'rgba(52, 152, 219, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: ${value.toFixed(2)} VEC (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+        
+        // Modal functionality
+        const modal = document.getElementById('upgradeModal');
+        const btn = document.getElementById('manageUpgradeBtn');
+        const span = document.getElementsByClassName('close')[0];
+        
+        btn.onclick = function() {
+            modal.style.display = "block";
+            
+            // Set default dates
+            const today = new Date();
+            const notificationDate = new Date();
+            notificationDate.setDate(today.getDate() + 14); // Default to 2 weeks from now
+            
+            const upgradeDate = new Date();
+            upgradeDate.setDate(today.getDate() + 30); // Default to 1 month from now
+            
+            document.getElementById('notification-date').value = notificationDate.toISOString().substr(0, 10);
+            document.getElementById('upgrade-date').value = upgradeDate.toISOString().substr(0, 10);
+        }
+        
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+        
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+        
+        document.getElementById('upgradeForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const notificationDate = document.getElementById('notification-date').value;
+            const upgradeDate = document.getElementById('upgrade-date').value;
+            
+            // In a real application, this would send data to the server
+            alert(`Schedule updated! User notifications will be sent on ${notificationDate} and upgrade will occur on ${upgradeDate}.`);
+            
+            modal.style.display = "none";
+        }
+    });
+</script>
+{% endblock %}

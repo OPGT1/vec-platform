@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+
+    <title>Transactions</title>
+
+    
+</head>
+
+<a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+
+<div class="status-message">JavaScript is working! 🚀</div>
+
+<h2>Recent Transactions</h2>
+
+<!-- Table stays as is -->
+
+<div class="balance">
+  My Balance: <span class="balance-amount">${{ balance }}</span>
+</div>
+
+<a href="{{ url_for('send_credits_page') }}" class="btn">Send Credits</a>
+<body>
+    <h2>Transaction History</h2>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Sender</th>
+            <th>Receiver</th>
+            <th>Amount</th>
+            <th>Date</th>
+        </tr>
+        {% for txn in transactions %}
+        <tr>
+            <td>{{ txn.id }}</td>
+            <td>{{ txn.sender }}</td>
+            <td>{{ txn.receiver }}</td>
+            <td>${{ txn.amount }}</td>
+            <td>{{ txn.transaction_date }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+</body>
+</html>

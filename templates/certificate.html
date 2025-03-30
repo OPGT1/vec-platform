@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEC Burn Certificate</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+    <style>
+        .certificate-container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 40px;
+            border: 20px solid #34495e;
+            position: relative;
+            background-color: white;
+        }
+        
+        .certificate-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .certificate-title {
+            font-size: 32px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .certificate-subtitle {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        
+        .certificate-body {
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        .certificate-statement {
+            font-size: 18px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .certificate-impact {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        
+        .impact-item {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .impact-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 5px;
+        }
+        
+        .impact-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .certificate-footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .signature-line {
+            width: 200px;
+            border-top: 1px solid #2c3e50;
+            margin: 10px 0;
+        }
+        
+        .certificate-actions {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .certificate-id {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .certificate-date {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-area">
+        <div class="user-welcome">Welcome, {{ email }}</div>
+        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+
+    <div class="certificate-container">
+        <div class="certificate-header">
+            <div class="certificate-title">Renewable Energy Certificate</div>
+            <div class="certificate-subtitle">Virtual Energy Credits (VEC) Burn Verification</div>
+        </div>
+        
+        <div class="certificate-body">
+            <p>This certificate confirms that <strong>{{ certificate.recipient_name }}</strong> has permanently removed 
+            <strong>{{ certificate.amount }} VEC</strong> from circulation, representing <strong>{{ kwh_equivalent }} kWh</strong> 
+            of verified renewable energy production.</p>
+            
+            <div class="certificate-statement">
+                By burning these credits, {{ certificate.recipient_name }} has made a measurable 
+                positive impact on the environment and demonstrated a commitment to supporting 
+                clean energy generation.
+            </div>
+            
+            <div class="certificate-impact">
+                <div class="impact-item">
+                    <div class="impact-value">{{ certificate.amount }}</div>
+                    <div class="impact-label">VEC Credits Burned</div>
+                </div>
+                
+                <div class="impact-item">
+                    <div class="impact-value">{{ kwh_equivalent }}</div>
+                    <div class="impact-label">kWh of Clean Energy</div>
+                </div>
+                
+                <div class="impact-item">
+                    <div class="impact-value">{{ co2_avoided|round(2) }}</div>
+                    <div class="impact-label">kg CO₂ Emissions Avoided</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="certificate-footer">
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div>VEC System Authority</div>
+            </div>
+            
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div>{{ certificate.recipient_name }}</div>
+            </div>
+        </div>
+        
+        <div class="certificate-id">Certificate ID: VEC-BURN-{{ '%08d' % certificate.id }}</div>
+        <div class="certificate-date">Date: {{ certificate.burn_date.strftime('%Y-%m-%d') }}</div>
+    </div>
+    
+    <div class="certificate-actions">
+        <button onclick="window.print()" class="btn">Print Certificate</button>
+        <a href="{{ url_for('my_certificates') }}" class="btn">View All Certificates</a>
+        <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    </div>
+</body>
+</html>

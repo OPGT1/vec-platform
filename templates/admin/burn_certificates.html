@@ -1,0 +1,128 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Burn Certificates{% endblock %}
+
+{% block header %}Burn Certificates Management{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="filters">
+    <form method="GET">
+        <div class="form-group">
+            <label for="recipient">Recipient:</label>
+            <input type="text" id="recipient" name="recipient" placeholder="Search by recipient..." value="{{ request.args.get('recipient', '') }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+        </div>
+        
+        <button type="submit" class="btn">Filter</button>
+        <a href="{{ url_for('admin_routes.burn_certificates') }}" class="btn">Reset</a>
+    </form>
+</div>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Total Certificates</h3>
+        <div class="value">{{ certificates|length }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Total VEC Burned</h3>
+        <div class="value">{{ total_burned|round(2) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <h3>Total CO₂ Avoided</h3>
+        <div class="value">{{ (total_burned * 5 * 0.7)|round(2) }} kg</div>
+    </div>
+</div>
+
+<div class="chart-section">
+    <h3>Burn Rate (Last 30 Days)</h3>
+    <div class="chart-container">
+        <canvas id="burnChart" width="800" height="300"></canvas>
+    </div>
+</div>
+
+<h3>Certificate List</h3>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Recipient</th>
+        <th>Amount (VEC)</th>
+        <th>Burn Date</th>
+        <th>Actions</th>
+    </tr>
+    {% for cert in certificates %}
+    <tr>
+        <td>{{ cert.id }}</td>
+        <td>{{ cert.user_email }}</td>
+        <td>{{ cert.recipient_name }}</td>
+        <td>{{ cert.amount }}</td>
+        <td>{{ cert.burn_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td>
+            <a href="{{ url_for('admin_routes.view_certificate', certificate_id=cert.id) }}" class="btn btn-small">View</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('burnChart').getContext('2d');
+        
+        const burnChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ burn_dates|tojson }},
+                datasets: [{
+                    label: 'Daily Burn Amount (VEC)',
+                    data: {{ burn_amounts|tojson }},
+                    backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'VEC Tokens Burned'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                return `${value} VEC burned (${(value * 5 * 0.7).toFixed(2)} kg CO₂ avoided)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

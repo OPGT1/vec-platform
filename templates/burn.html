@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Burn VEC Certificates</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      padding: 2rem 3rem;
+      max-width: 400px;
+      width: 100%;
+    }
+    h2 {
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      text-align: center;
+      color: #111827;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #10b981;
+      color: white;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #059669;
+    }
+    .message {
+      margin-top: 1rem;
+      text-align: center;
+      font-weight: 500;
+      color: #10b981;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Burn VECs</h2>
+    <form id="burn-form">
+      <input type="number" name="amount" placeholder="Amount (kWh)" required />
+      <input type="text" name="recipient_name" placeholder="Recipient Name (optional)" />
+      <input type="email" name="recipient_email" placeholder="Recipient Email (optional)" />
+      <input type="text" name="certificate_hash" placeholder="Certificate Hash (optional)" />
+      <button type="submit">Burn Now</button>
+    </form>
+    <div class="message" id="response-message"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('burn-form');
+    const message = document.getElementById('response-message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        amount: form.amount.value,
+        recipient_name: form.recipient_name.value,
+        recipient_email: form.recipient_email.value,
+        certificate_hash: form.certificate_hash.value,
+      };
+
+      const res = await fetch('/burn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      message.textContent = result.message;
+      form.reset();
+    });
+  </script>
+</body>
+</html>

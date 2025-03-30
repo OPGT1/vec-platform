@@ -1,0 +1,2101 @@
+// Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+                    mobileMenuButton.setAttribute('aria-expanded', !isExpanded);
+                    mobileMenu.classList.toggle('hidden');
+                    if (mobileMenuBackdrop) {
+                        mobileMenuBackdrop.classList.toggle('hidden');
+                    }
+                });
+                
+                // Close mobile menu when backdrop is clicked
+                if (mobileMenuBackdrop) {
+                    mobileMenuBackdrop.addEventListener('click', () => {
+                        mobileMenu.classList.add('hidden');
+                        mobileMenuBackdrop.classList.add('hidden');
+                        mobileMenuButton.setAttribute('aria-expanded', 'false');
+                        
+                        // Trigger support modal
+                        const supportButtonEvent = new Event('click');
+                        supportButton.dispatchEvent(supportButtonEvent);
+                    });
+                }
+            }
+            
+            // Toast notification system
+            function showToast(message, type = 'success', duration = 5000) {
+                const toastContainer = document.getElementById('toast-container');
+                
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                
+                // Icon based on type
+                let icon = '';
+                if (type === 'success') {
+                    icon = '<i class="fas fa-check-circle text-green-600"></i>';
+                } else if (type === 'error') {
+                    icon = '<i class="fas fa-exclamation-circle text-red-600"></i>';
+                } else if (type === 'info') {
+                    icon = '<i class="fas fa-info-circle text-blue-600"></i>';
+                }
+                
+                // Build toast content
+                toast.innerHTML = `
+                    <div class="toast-icon">${icon}</div>
+                    <div class="toast-content">
+                        <p class="text-sm font-medium">${message}</p>
+                    </div>
+                    <div class="toast-close" role="button" aria-label="Close notification">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+                
+                // Add to container
+                toastContainer.appendChild(toast);
+                
+                // Handle close button
+                const closeButton = toast.querySelector('.toast-close');
+                closeButton.addEventListener('click', () => {
+                    toastContainer.removeChild(toast);
+                });
+                
+                // Auto-dismiss
+                setTimeout(() => {
+                    if (toastContainer.contains(toast)) {
+                        toast.style.opacity = '0';
+                        setTimeout(() => {
+                            if (toastContainer.contains(toast)) {
+                                toastContainer.removeChild(toast);
+                            }
+                        }, 300);
+                    }
+                }, duration);
+            }
+            
+            // Form submission handlers with toast notifications
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                
+                // Handle upload form
+                if (form.id === 'upload-form') {
+                    e.preventDefault();
+                    
+                    // Simulate form submission
+                    const fileInput = document.getElementById('energy-file');
+                    const energyAmountInput = document.getElementById('energy-amount');
+                    
+                    if ((fileInput && fileInput.files.length > 0) || (energyAmountInput && energyAmountInput.value)) {
+                        // Simulate server request
+                        setTimeout(() => {
+                            closeModal(uploadModal, uploadModalBackdrop);
+                            
+                            // Show success toast
+                            showToast('Energy data uploaded successfully! Processing your VECs...', 'success');
+                            
+                            // In production, this would redirect or refresh the data
+                            setTimeout(() => {
+                                showToast('45 new VECs have been minted to your account!', 'success');
+                            }, 3000);
+                        }, 1500);
+                    } else {
+                        showToast('Please upload a file or enter an energy amount', 'error');
+                    }
+                }
+                
+                // Handle burn form
+                if (form.id === 'burn-form') {
+                    e.preventDefault();
+                    
+                    const burnAmount = document.getElementById('burn-amount').value;
+                    const certificateName = document.getElementById('certificate-name').value;
+                    const certificateEmail = document.getElementById('certificate-email').value;
+                    
+                    if (burnAmount && certificateName && certificateEmail) {
+                        // Validate inputs
+                        if (parseFloat(burnAmount) <= 0) {
+                            showToast('Please enter a valid amount to burn', 'error');
+                            return;
+                        }
+                        
+                        // Simulate server request
+                        setTimeout(() => {
+                            closeModal(burnModal, burnModalBackdrop);
+                            
+                            // Show success toast
+                            showToast(`Successfully burned ${burnAmount} VECs!`, 'success');
+                            
+                            // In production, this would redirect to certificate
+                            setTimeout(() => {
+                                showToast('Your impact certificate is ready to view', 'info');
+                            }, 2000);
+                        }, 1500);
+                    } else {
+                        showToast('Please fill in all required fields', 'error');
+                    }
+                }
+            });
+            
+            // Verify Now button
+            const verifyNowButton = document.getElementById('verify-now-button');
+            if (verifyNowButton) {
+                verifyNowButton.addEventListener('click', () => {
+                    // Open upload modal
+                    openModal(uploadModal, uploadModalBackdrop);
+                    
+                    // Pre-select appropriate options
+                    if (document.getElementById('data-source')) {
+                        document.getElementById('data-source').value = 'solar';
+                    }
+                    
+                    if (document.getElementById('energy-amount')) {
+                        document.getElementById('energy-amount').value = '{{ unverified_kwh|default(450) }}';
+                    }
+                });
+            }
+            
+            // Handle chart responsiveness
+            function handleChartResize() {
+                if (impactChart) {
+                    impactChart.options.responsive = true;
+                    impactChart.options.maintainAspectRatio = false;
+                    impactChart.resize();
+                }
+            }
+            
+            // Listen for window resize
+            window.addEventListener('resize', handleChartResize);
+            
+            // Initialize event listeners for accessibility
+            function initAccessibility() {
+                // Ensure all interactive elements have appropriate ARIA attributes
+                const buttons = document.querySelectorAll('button:not([aria-label])');
+                buttons.forEach(button => {
+                    const text = button.textContent.trim();
+                    if (text) {
+                        button.setAttribute('aria-label', text);
+                    }
+                });
+                
+                // Ensure keyboard navigation works for modals
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            const backdrop = document.querySelector('.modal-backdrop[style*="display: block"]');
+                            if (backdrop) {
+                                const modalElement = document.querySelector('.modal[style*="display: block"]');
+                                closeModal(modalElement, backdrop);
+                            }
+                        }
+                    });
+                });
+                
+                // Focus management for modals
+                const modalTriggers = document.querySelectorAll('[id$="-modal-trigger"]');
+                modalTriggers.forEach(trigger => {
+                    trigger.addEventListener('click', () => {
+                        setTimeout(() => {
+                            const openModal = document.querySelector('.modal[style*="display: block"]');
+                            if (openModal) {
+                                const firstFocusable = openModal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                                if (firstFocusable) {
+                                    firstFocusable.focus();
+                                }
+                            }
+                        }, 100);
+                    });
+                });
+            }
+            
+            // Call accessibility initialization
+            initAccessibility();
+            
+            // Hook up with backend API endpoints
+            async function fetchDashboardData() {
+                try {
+                    // In production, this would be a real API call
+                    // const response = await fetch('/api/dashboard');
+                    // const data = await response.json();
+                    
+                    // For demo, we'll simulate the response
+                    setTimeout(() => {
+                        console.log('Dashboard data refreshed');
+                        // Update UI with fetched data
+                    }, 1000);
+                } catch (error) {
+                    console.error('Error fetching dashboard data:', error);
+                    showToast('Unable to refresh dashboard data. Please try again.', 'error');
+                }
+            }
+            
+            // Initial data fetch
+            fetchDashboardData();
+            
+            // Periodic refresh (every 5 minutes)
+            setInterval(fetchDashboardData, 5 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>');
+                    });
+                }
+                
+                // Mobile support button
+                const mobileSupportButton = document.getElementById('mobile-support-button');
+                if (mobileSupportButton) {
+                    mobileSupportButton.addEventListener('click', () => {
+                        // Close mobile menu
+                        mobileMenu.classList.add('hidden');
+                        mobileMenuBackdrop.classList.add('hidden');
+                        mobileMenuButton.setAttribute('aria-expanded', 'false    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl font-bold text-green-600">VEC</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="hidden md:ml-6 md:flex md:items-center md:space-x-4 nav-desktop-menu">
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Dashboard</a>
+                        <a href="/marketplace" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Marketplace</a>
+                        <a href="/my_certificates" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Certificates</a>
+                        <a href="/account" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Account</a>
+                        <a href="/wallet" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Wallet</a>
+                        {% if user.is_admin %}
+                        <a href="/admin" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:text-green-600">Admin</a>
+                        {% endif %}
+                        <button id="support-button" class="px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100" aria-label="Get support">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
+                    </div>
+                    <!-- Mobile menu button -->
+                    <div class="md:hidden nav-mobile-menu">
+                        <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-green-600 hover:bg-gray-100" aria-controls="mobile-menu" aria-expanded="false">
+                            <span class="sr-only">Open main menu</span>
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <svg class="-ml-1 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                            </svg>
+                            Active
+                        </span>
+                    </div>
+                    <div class="ml-3 relative">
+                        <div>
+                            <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" id="user-menu-button" aria-label="User menu" aria-haspopup="true">
+                                <span class="sr-only">Open user menu</span>
+                                <div class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                                    <span class="text-white font-medium">{{ user.name[0] }}</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu, show/hide based on menu state -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">Dashboard</a>
+                <a href="/marketplace" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">Marketplace</a>
+                <a href="/my_certificates" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">Certificates</a>
+                <a href="/account" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">Account</a>
+                <a href="/wallet" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">Wallet</a>
+                {% if user.is_admin %}
+                <a href="/admin" class="block px-3 py-2 rounded-md text-base font-medium bg-gray-100 text-gray-700 hover:text-green-600">Admin</a>
+                {% endif %}
+                <button id="mobile-support-button" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">
+                    <i class="fas fa-question-circle mr-2"></i> Support
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Notification CTA Banner for unverified energy -->
+        {% if has_unverified_energy %}
+        <div class="cta-banner mb-8" role="alert">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-bolt text-yellow-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-yellow-800">
+                        You have {{ unverified_kwh|default(450) }} kWh of energy waiting to be verified and minted into VECs!
+                    </p>
+                </div>
+            </div>
+            <div>
+                <button id="verify-now-button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                    Verify Now
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Welcome Header -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="vec-gradient px-6 py-4">
+                <h1 class="text-2xl font-bold text-white">Welcome back, {{ user.name }}!</h1>
+                <p class="text-white opacity-90">Your clean energy impact dashboard</p>
+            </div>    </footer>
+
+    <!-- Toast notification container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Mobile menu, show/hide based on menu state -->
+    <div id="mobile-menu-backdrop" class="modal-backdrop hidden"></div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal-backdrop" class="modal-backdrop"></div>
+    <div id="upload-modal" class="modal">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-900">Upload Energy Data</h3>
+            <button type="button" class="close-modal text-gray-400 hover:text-gray-500" aria-label="Close">
+                <span class="sr-only">Close</span>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
+                <div class="space-y-4">
+                    <div>
+                        <label for="data-source" class="block text-sm font-medium text-gray-700">Data Source</label>
+                        <select id="data-source" name="data_source" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                            <option value="solar">Solar Production</option>
+                            <option value="wind">Wind Production</option>
+                            <option value="hydro">Hydro Production</option>
+                            <option value="other">Other Renewable</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="time-period" class="block text-sm font-medium text-gray-700">Time Period</label>
+                        <select id="time-period" name="time_period" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                            <option value="day">Daily</option>
+                            <option value="week">Weekly</option>
+                            <option value="month">Monthly</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="energy-file" class="block text-sm font-medium text-gray-700">Energy Data File (CSV)</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div class="space-y-1 text-center">
+                                <i class="fas fa-file-csv text-gray-400 text-3xl mb-2"></i>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="energy-file" class="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none">
+                                        <span>Upload a file</span>
+                                        <input id="energy-file" name="file" type="file" class="sr-only" accept=".csv" aria-describedby="file-description">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500" id="file-description">CSV file up to 10MB</p>
+                            </div>
+                        </div>
+                        <div id="file-name" class="mt-2 text-sm text-gray-500"></div>
+                    </div>
+                    <div>
+                        <label for="energy-amount" class="block text-sm font-medium text-gray-700">Or Enter Energy Amount Manually (kWh)</label>
+                        <div class="mt-1">
+                            <input type="number" name="energy_amount" id="energy-amount" class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="e.g. 750" aria-describedby="energy-amount-description">
+                            <p id="energy-amount-description" class="sr-only">Enter the energy amount in kilowatt-hours</p>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="close-modal inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none" aria-label="Cancel upload">
+                Cancel
+            </button>
+            <button type="submit" form="upload-form" class="ml-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none" aria-label="Upload energy data">
+                Upload Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Burn Modal -->
+    <div id="burn-modal-backdrop" class="modal-backdrop"></div>
+    <div id="burn-modal" class="modal">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-900">Burn VEC Credits</h3>
+            <button type="button" class="close-modal text-gray-400 hover:text-gray-500">
+                <span class="sr-only">Close</span>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="burn-form" action="/burn" method="POST">
+                <div class="space-y-4">
+                    <div class="bg-yellow-50 p-4 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-yellow-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-yellow-800">About burning VECs</h3>
+                                <div class="text-sm text-yellow-700">
+                                    <p>Burning VECs permanently removes them from circulation and generates a verified impact certificate. This represents your commitment to renewable energy.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div>
+                        <label for="burn-amount" class="block text-sm font-medium text-gray-700">Amount to Burn (VEC)</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <input type="number" name="burn_amount" id="burn-amount" class="focus:ring-green-500 focus:border-green-500 block w-full pr-16 sm:text-sm border-gray-300 rounded-md" placeholder="0" min="0.01" max="{{ vec_balance }}" step="0.01">
+                            <div class="absolute inset-y-0 right-0 flex items-center">
+                                <label for="currency" class="sr-only">Currency</label>
+                                <span class="h-full inline-flex items-center px-3 border-l border-gray-300 bg-gray-50 text-gray-500 sm:text-sm rounded-r-md">
+                                    VEC
+                                </span>
+                            </div>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Available: {{ vec_balance }} VEC (≈ ${{ (vec_balance * 5.00)|round(2) }})</p>
+                    </div>
+                
+                    <div id="burn-preview" class="hidden">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Environmental Impact Preview</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-green-50 p-3 rounded-md">
+                                <p class="text-xs text-gray-500">Clean Energy</p>
+                                <p class="text-lg font-bold text-green-700"><span id="preview-kwh">0</span> kWh</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-md">
+                                <p class="text-xs text-gray-500">CO₂ Avoided</p>
+                                <p class="text-lg font-bold text-blue-700"><span id="preview-co2">0</span> kg</p>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div>
+                        <label for="certificate-name" class="block text-sm font-medium text-gray-700">Certificate Recipient</label>
+                        <div class="mt-1">
+                            <input type="text" name="certificate_name" id="certificate-name" class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Organization or Individual Name">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Name that will appear on the certificate</p>
+                    </div>
+                
+                    <div>
+                        <label for="certificate-email" class="block text-sm font-medium text-gray-700">Certificate Email</label>
+                        <div class="mt-1">
+                            <input type="email" name="certificate_email" id="certificate-email" class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="email@example.com">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Where to send the certificate</p>
+                    </div>
+                
+                    <div>
+                        <label for="certificate-purpose" class="block text-sm font-medium text-gray-700">Purpose</label>
+                        <div class="mt-1">
+                            <select id="certificate-purpose" name="purpose" class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                <option value="offset">Carbon Offset</option>
+                                <option value="corporate">Corporate Sustainability</option>
+                                <option value="event">Event Sponsorship</option>
+                                <option value="gift">Gift</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="close-modal inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+                Cancel
+            </button>
+            <button type="submit" form="burn-form" class="ml-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none">
+                Burn VECs & Generate Certificate
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Impact chart data (30-day trend)
+            const dates = [
+                {% for i in range(30) %}
+                '{{ (now - i|int * 86400)|strftime("%b %d") }}',
+                {% endfor %}
+            ].reverse();
+            
+            // Sample data - in production this would come from your backend
+            const kwhData = [
+                {% for i in range(30) %}
+                {{ range(5, 50)|random + loop.index * 2.5 }},
+                {% endfor %}
+            ].reverse();
+            
+            const co2Data = kwhData.map(kwh => kwh * 0.7);
+            const vecsData = kwhData.map(kwh => kwh / 10);
+            
+            // Create the chart
+            const ctx = document.getElementById('impactChart').getContext('2d');
+            const impactChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Clean Energy (kWh)',
+                        data: kwhData,
+                        backgroundColor: 'rgba(39, 174, 96, 0.2)',
+                        borderColor: 'rgba(39, 174, 96, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(39, 174, 96, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' kWh';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const metricType = document.getElementById('impact-metric').value;
+                                    const value = context.raw;
+                                    
+                                    if (metricType === 'kwh') {
+                                        return value + ' kWh';
+                                    } else if (metricType === 'co2') {
+                                        return (value * 0.7).toFixed(2) + ' kg CO₂';
+                                    } else if (metricType === 'vecs') {
+                                        return (value / 10).toFixed(2) + ' VEC';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update chart when metric selector changes
+            document.getElementById('impact-metric').addEventListener('change', function() {
+                const metricType = this.value;
+                let data, label, color, unit;
+                
+                if (metricType === 'kwh') {
+                    data = kwhData;
+                    label = 'Clean Energy (kWh)';
+                    color = 'rgba(39, 174, 96, 1)';
+                    unit = ' kWh';
+                } else if (metricType === 'co2') {
+                    data = co2Data;
+                    label = 'CO₂ Avoided (kg)';
+                    color = 'rgba(52, 152, 219, 1)';
+                    unit = ' kg';
+                } else if (metricType === 'vecs') {
+                    data = vecsData;
+                    label = 'VECs Generated';
+                    color = 'rgba(230, 126, 34, 1)';
+                    unit = ' VEC';
+                }
+                
+                impactChart.data.datasets[0].data = data;
+                impactChart.data.datasets[0].label = label;
+                impactChart.data.datasets[0].borderColor = color;
+                impactChart.data.datasets[0].backgroundColor = color.replace('1)', '0.2)');
+                impactChart.data.datasets[0].pointBackgroundColor = color;
+                
+                impactChart.options.scales.y.ticks.callback = function(value) {
+                    return value + unit;
+                };
+                
+                impactChart.update();
+            });
+
+            // Tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('text-green-600', 'border-green-600');
+                        btn.classList.add('text-gray-500', 'border-transparent');
+                    });
+                    
+                    // Add active class to clicked button
+                    button.classList.add('text-green-600', 'border-green-600');
+                    button.classList.remove('text-gray-500', 'border-transparent');
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // Show the corresponding content
+                    const contentId = 'content-' + button.id.split('-')[1];
+                    document.getElementById(contentId).classList.remove('hidden');
+                });
+            });
+            
+            // Modal functionality
+            const uploadModalTrigger = document.getElementById('upload-modal-trigger');
+            const uploadModal = document.getElementById('upload-modal');
+            const uploadModalBackdrop = document.getElementById('upload-modal-backdrop');
+            
+            const burnModalTrigger = document.getElementById('burn-modal-trigger');
+            const burnModal = document.getElementById('burn-modal');
+            const burnModalBackdrop = document.getElementById('burn-modal-backdrop');
+            
+            const closeModalButtons = document.querySelectorAll('.close-modal');
+            
+            function openModal(modal, backdrop) {
+                modal.style.display = 'block';
+                backdrop.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
+            
+            function closeModal(modal, backdrop) {
+                modal.style.display = 'none';
+                backdrop.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+            
+            uploadModalTrigger.addEventListener('click', () => {
+                openModal(uploadModal, uploadModalBackdrop);
+            });
+            
+            burnModalTrigger.addEventListener('click', () => {
+                openModal(burnModal, burnModalBackdrop);
+            });
+            
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    closeModal(uploadModal, uploadModalBackdrop);
+                    closeModal(burnModal, burnModalBackdrop);
+                });
+            });
+            
+            uploadModalBackdrop.addEventListener('click', () => {
+                closeModal(uploadModal, uploadModalBackdrop);
+            });
+            
+            burnModalBackdrop.addEventListener('click', () => {
+                closeModal(burnModal, burnModalBackdrop);
+            });
+            
+            // File upload preview
+            const fileInput = document.getElementById('energy-file');
+            const fileNameDisplay = document.getElementById('file-name');
+            
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    fileNameDisplay.textContent = 'Selected file: ' + fileInput.files[0].name;
+                } else {
+                    fileNameDisplay.textContent = '';
+                }
+            });
+            
+            // Burn preview functionality
+            const burnAmountInput = document.getElementById('burn-amount');
+            const burnPreview = document.getElementById('burn-preview');
+            const previewKwh = document.getElementById('preview-kwh');
+            const previewCo2 = document.getElementById('preview-co2');
+            
+            burnAmountInput.addEventListener('input', () => {
+                const amount = parseFloat(burnAmountInput.value) || 0;
+                
+                if (amount > 0) {
+                    burnPreview.classList.remove('hidden');
+                    
+                    // Calculate impact (1 VEC = 10 kWh, 1 kWh = 0.7 kg CO2)
+                    const kwhEquivalent = amount * 10;
+                    const co2Avoided = kwhEquivalent * 0.7;
+                    
+                    previewKwh.textContent = kwhEquivalent.toFixed(2);
+                    previewCo2.textContent = co2Avoided.toFixed(2);
+                } else {
+                    burnPreview.classList.add('hidden');
+                }
+            });
+            
+            // Weekly gamification feature - impact progress
+            const weeklyGoal = 100; // kWh
+            const currentProgress = {{ (total_kwh / 100)|round(0) * 100 }}; // Rounded to nearest 100
+            const progressBar = document.querySelector('.progress-bar');
+            const progressPercent = Math.min(100, (currentProgress / weeklyGoal) * 100);
+            
+            // Update progress bar if it exists
+            if (progressBar) {
+                progressBar.style.width = progressPercent + '%';
+                if (progressPercent >= 100) {
+                    progressBar.classList.add('bg-green-500');
+                    progressBar.textContent = 'Goal Achieved!';
+                } else {
+                    progressBar.textContent = progressPercent.toFixed(0) + '%';
+                }
+            }
+            
+            // Real-time VEC price update simulation (would connect to your actual price API)
+            const vecPriceElement = document.querySelector('.vec-price-value');
+            if (vecPriceElement) {
+                setInterval(() => {
+                    const basePrice = 5.00;
+                    const fluctuation = (Math.random() - 0.5) * 0.10; // Small price movement
+                    const newPrice = (basePrice + fluctuation).toFixed(2);
+                    vecPriceElement.textContent = '
+                                <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEC Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .vec-gradient {
+            background: linear-gradient(135deg, #20bf55 0%, #01baef 100%);
+        }
+        .bg-eco-green {
+            background-color: #27ae60;
+        }
+        .bg-eco-blue {
+            background-color: #3498db;
+        }
+        .bg-eco-orange {
+            background-color: #e67e22;
+        }
+        .bg-eco-purple {
+            background-color: #9b59b6;
+        }
+        .impact-card {
+            transition: all 0.3s ease;
+        }
+        .impact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        /* Tooltip styles */
+        .tooltip-trigger {
+            position: relative;
+            display: inline-block;
+            margin-top: 5px;
+            cursor: help;
+        }
+        .tooltip {
+            visibility: hidden;
+            width: 220px;
+            background-color: #2d3748;
+            color: white;
+            text-align: center;
+            border-color: #2d3748 transparent transparent transparent;
+        }
+        .tooltip-trigger:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Modal styles */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            backdrop-filter: blur(2px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+        }
+        body.modal-open {
+            overflow: hidden;
+        }
+        .badge-trend-up {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .badge-trend-down {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl font-bold text-green-600">VEC</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="hidden md:ml-6 md:flex md:items-center md:space-x-4">
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Dashboard</a>
+                        <a href="/marketplace" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Marketplace</a>
+                        <a href="/my_certificates" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Certificates</a>
+                        <a href="/account" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Account</a>
+                        <a href="/wallet" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Wallet</a>
+                        {% if user.is_admin %}
+                        <a href="/admin" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:text-green-600">Admin</a>
+                        {% endif %}
+                        <button id="support-button" class="px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-green-600 hover:bg-gray-100">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <svg class="-ml-1 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                            </svg>
+                            Active
+                        </span>
+                    </div>
+                    <div class="ml-3 relative">
+                        <div>
+                            <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" id="user-menu-button">
+                                <span class="sr-only">Open user menu</span>
+                                <div class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                                    <span class="text-white font-medium">{{ user.name[0] }}</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Header -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="vec-gradient px-6 py-4">
+                <h1 class="text-2xl font-bold text-white">Welcome back, {{ user.name }}!</h1>
+                <p class="text-white opacity-90">Your clean energy impact dashboard</p>
+            </div>
+            <div class="px-6 py-4 flex flex-wrap justify-between items-center">
+                <div class="flex items-center">
+                    <div class="bg-green-100 rounded-full p-3 mr-4">
+                        <i class="fas fa-bolt text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Current VEC Balance</p>
+                        <p class="text-2xl font-bold">{{ vec_balance }} <span class="text-sm font-normal text-gray-500">VEC</span> <span class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2" title="Current market value of your VEC balance">≈ ${{ (vec_balance * 5.00)|round(2) }}</span></p>
+                        <p class="text-xs text-gray-500 mt-1">Current rate: $5.00 per VEC</p>
+                    </div>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <div class="inline-flex rounded-md shadow">
+                        <button id="upload-modal-trigger" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                            <i class="fas fa-upload mr-2"></i> Upload Energy Data
+                        </button>
+                    </div>
+                    <div class="inline-flex rounded-md shadow ml-3">
+                        <button id="burn-modal-trigger" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                            <i class="fas fa-fire mr-2"></i> Burn VECs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environmental Impact -->
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Your Environmental Impact</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-green px-4 py-2">
+                    <h3 class="text-white font-medium">Clean Energy</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-solar-panel text-4xl text-eco-green"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ total_kwh }}</p>
+                            <p class="text-sm text-gray-500">kWh Verified</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Clean energy verified through meter readings and validated by VEC system
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-blue px-4 py-2">
+                    <h3 class="text-white font-medium">CO₂ Avoided</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-cloud text-4xl text-eco-blue"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ total_kwh * 0.7 }}</p>
+                            <p class="text-sm text-gray-500">kg CO₂ Equivalent</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Calculated at 0.7 kg CO₂ emissions avoided per kWh of clean energy generated
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-orange px-4 py-2">
+                    <h3 class="text-white font-medium">Trees Equivalent</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-tree text-4xl text-eco-orange"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ (total_kwh * 0.7 / 20)|round(1) }}</p>
+                            <p class="text-sm text-gray-500">Trees for 1 Year</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Based on average carbon sequestration of 20 kg CO₂ per tree per year
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-purple px-4 py-2">
+                    <h3 class="text-white font-medium">Homes Powered</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-home text-4xl text-eco-purple"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ (total_kwh / 30)|round(0) }}</p>
+                            <p class="text-sm text-gray-500">Homes for 1 Day</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Based on average household consumption of 30 kWh per day
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 30-Day Impact Trend Chart -->
+        <h2 class="text-xl font-bold text-gray-800 mb-4">30-Day Impact Trend</h2>
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8 p-4">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <select id="impact-metric" class="block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                        <option value="kwh">Clean Energy (kWh)</option>
+                        <option value="co2">CO₂ Avoided (kg)</option>
+                        <option value="vecs">VECs Generated</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="px-3 py-1 text-xs text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100">Week</button>
+                    <button class="px-3 py-1 text-xs bg-green-600 text-white border border-green-600 rounded-md">Month</button>
+                    <button class="px-3 py-1 text-xs text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100">Year</button>
+                </div>
+            </div>
+            <div class="relative h-64">
+                <canvas id="impactChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Wallet Summary Block -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800">Your VEC Wallet</h2>
+            </div>
+            <div class="px-6 py-4">
+                <div class="flex flex-wrap items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="bg-gray-100 rounded-lg p-3 mr-4">
+                            <i class="fas fa-wallet text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Wallet Address</p>
+                            <div class="flex items-center">
+                                <p class="font-mono text-sm">{{ wallet_address|default('vec_' + user.id|string + '_' + '0x...' + user.id|string) }}</p>
+                                <button class="ml-2 text-gray-400 hover:text-gray-600" title="Copy to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 sm:mt-0 flex space-x-4">
+                        <button id="show-qr-button" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                            <i class="fas fa-qrcode mr-2"></i> Show QR
+                        </button>
+                        <button id="export-button" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                            <i class="fas fa-file-export mr-2"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">Last Transaction</p>
+                        <p class="text-sm font-medium">{{ last_transaction_date|default('Today at 10:45 AM') }}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">Pending Mints</p>
+                        <p class="text-sm font-medium">{{ pending_mints|default(0) }} VEC</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">Network</p>
+                        <p class="text-sm font-medium">{{ network|default('VEC Mainnet') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VEC Activity Summary -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800">VEC Activity Summary</h2>
+            </div>
+            <div class="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <svg class="w-32 h-32">
+                            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle class="text-green-600 progress-ring" stroke-width="10" stroke="currentColor" stroke-linecap="round" fill="transparent" r="58" cx="64" cy="64" stroke-dasharray="364.4" stroke-dashoffset="{{ 364.4 * (1 - total_vecs_minted / (total_vecs_minted + vecs_burned)) }}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">{{ total_vecs_minted }}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 font-medium">VECs Minted</p>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <svg class="w-32 h-32">
+                            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle class="text-red-600 progress-ring" stroke-width="10" stroke="currentColor" stroke-linecap="round" fill="transparent" r="58" cx="64" cy="64" stroke-dasharray="364.4" stroke-dashoffset="{{ 364.4 * (1 - vecs_burned / (total_vecs_minted + vecs_burned)) }}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">{{ vecs_burned }}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 font-medium">VECs Burned</p>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <svg class="w-32 h-32">
+                            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle class="text-blue-600 progress-ring" stroke-width="10" stroke="currentColor" stroke-linecap="round" fill="transparent" r="58" cx="64" cy="64" stroke-dasharray="364.4" stroke-dashoffset="{{ 364.4 * (1 - vec_balance / total_vecs_minted) }}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">{{ vec_balance }}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 font-medium">Current Balance</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity History Tabs -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button id="tab-mint" class="tab-button active-tab text-green-600 border-green-600 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        Mint History
+                    </button>
+                    <button id="tab-burn" class="tab-button text-gray-500 border-transparent whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        Burn History
+                    </button>
+                    <button id="tab-certificates" class="tab-button text-gray-500 border-transparent whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        My Certificates
+                    </button>
+                </nav>
+            </div>
+            <div id="content-mint" class="tab-content px-6 py-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Energy (kWh)</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VECs Minted</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for mint in mint_history %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ mint.date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ mint.kwh }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ mint.vecs }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Verified
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="content-burn" class="tab-content px-6 py-4 hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VECs Burned</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for burn in burn_history %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ burn.date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ burn.vecs }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ burn.purpose }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <a href="/certificate/{{ burn.id }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="content-certificates" class="tab-content px-6 py-4 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for cert in certificates %}
+                    <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div class="bg-gradient-to-r from-green-600 to-blue-500 px-4 py-2">
+                            <h3 class="text-white font-medium">Certificate #{{ cert.id }}</h3>
+                        </div>
+                        <div class="px-4 py-3">
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>Recipient:</strong> {{ cert.recipient_name }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>Date:</strong> {{ cert.date }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>VECs Burned:</strong> {{ cert.vecs }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>CO₂ Avoided:</strong> {{ cert.vecs * 5 * 0.7 }} kg
+                            </p>
+                            <div class="mt-4">
+                                <a href="/certificate/{{ cert.id }}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                    View Certificate
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white mt-8 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <div>
+                <p class="text-gray-500">&copy; {{ year }} Verified Energy Credits (VEC)</p>
+            </div>
+            <div class="flex space-x-6">
+                <a href="#" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Twitter</span>
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">LinkedIn</span>
+                    <i class="fab fa-linkedin"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">GitHub</span>
+                    <i class="fab fa-github"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('text-green-600', 'border-green-600');
+                        btn.classList.add('text-gray-500', 'border-transparent');
+                    });
+                    
+                    // Add active class to clicked button
+                    button.classList.add('text-green-600', 'border-green-600');
+                    button.classList.remove('text-gray-500', 'border-transparent');
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // Show the corresponding content
+                    const contentId = 'content-' + button.id.split('-')[1];
+                    document.getElementById(contentId).classList.remove('hidden');
+                });
+            });
+            // Support modal
+            const supportButton = document.getElementById('support-button');
+            if (supportButton) {
+                supportButton.addEventListener('click', () => {
+                    // Create support modal dynamically
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop';
+                    backdrop.style.display = 'block';
+                    document.body.appendChild(backdrop);
+                    
+                    const modal = document.createElement('div');
+                    modal.className = 'modal';
+                    modal.style.display = 'block';
+                    modal.innerHTML = `
+                        <div class="modal-header">
+                            <h3 class="text-lg font-medium text-gray-900">Help & Support</h3>
+                            <button type="button" class="support-close-modal text-gray-400 hover:text-gray-500">
+                                <span class="sr-only">Close</span>
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="space-y-4">
+                                <p class="text-sm text-gray-600">Need help with your VEC account or have suggestions for improving our platform?</p>
+                                
+                                <div class="bg-green-50 rounded-md p-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-envelope text-green-600"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-medium text-green-800">Contact Support</h3>
+                                            <p class="text-sm text-green-700 mt-2">
+                                                Email us at <a href="mailto:support@vec.com" class="font-medium underline">support@vec.com</a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">Quick Help</h4>
+                                    <ul class="space-y-2 text-sm text-gray-600">
+                                        <li><a href="#" class="text-green-600 hover:text-green-800">How to verify energy production</a></li>
+                                        <li><a href="#" class="text-green-600 hover:text-green-800">Understanding VEC certificates</a></li>
+                                        <li><a href="#" class="text-green-600 hover:text-green-800">Trading on the marketplace</a></li>
+                                        <li><a href="#" class="text-green-600 hover:text-green-800">Claiming tax benefits</a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div>
+                                    <label for="feedback-message" class="block text-sm font-medium text-gray-700">Send Feedback</label>
+                                    <textarea id="feedback-message" rows="3" class="shadow-sm focus:ring-green-500 focus:border-green-500 mt-1 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Tell us what we can improve..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="support-close-modal inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+                                Close
+                            </button>
+                            <button type="button" class="ml-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none">
+                                Send Feedback
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    
+                    // Close support modal
+                    const closeButtons = document.querySelectorAll('.support-close-modal');
+                    closeButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            document.body.removeChild(backdrop);
+                            document.body.removeChild(modal);
+                        });
+                    });
+                    
+                    backdrop.addEventListener('click', () => {
+                        document.body.removeChild(backdrop);
+                        document.body.removeChild(modal);
+                    });
+                });
+            }
+            
+            // Wallet QR code functionality
+            const showQrButton = document.getElementById('show-qr-button');
+            if (showQrButton) {
+                showQrButton.addEventListener('click', () => {
+                    // Create QR modal dynamically
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop';
+                    backdrop.style.display = 'block';
+                    document.body.appendChild(backdrop);
+                    
+                    const modal = document.createElement('div');
+                    modal.className = 'modal';
+                    modal.style.display = 'block';
+                    modal.style.maxWidth = '400px';
+                    modal.innerHTML = `
+                        <div class="modal-header">
+                            <h3 class="text-lg font-medium text-gray-900">Wallet QR Code</h3>
+                            <button type="button" class="qr-close-modal text-gray-400 hover:text-gray-500">
+                                <span class="sr-only">Close</span>
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="mb-4">
+                                <div class="inline-block bg-white p-2 rounded-md shadow-sm">
+                                    <!-- Placeholder QR code - in production, generate dynamically -->
+                                    <svg width="200" height="200" viewBox="0 0 200 200" class="mx-auto">
+                                        <rect width="200" height="200" fill="#FFFFFF" />
+                                        <!-- Sample QR code pattern - in production, use a real QR code generator -->
+                                        <g fill="#000000">
+                                            <rect x="50" y="50" width="10" height="10" />
+                                            <rect x="60" y="50" width="10" height="10" />
+                                            <rect x="70" y="50" width="10" height="10" />
+                                            <rect x="80" y="50" width="10" height="10" />
+                                            <rect x="90" y="50" width="10" height="10" />
+                                            <rect x="50" y="60" width="10" height="10" />
+                                            <rect x="90" y="60" width="10" height="10" />
+                                            <rect x="50" y="70" width="10" height="10" />
+                                            <rect x="70" y="70" width="10" height="10" />
+                                            <rect x="90" y="70" width="10" height="10" />
+                                            <rect x="50" y="80" width="10" height="10" />
+                                            <rect x="90" y="80" width="10" height="10" />
+                                            <rect x="50" y="90" width="10" height="10" />
+                                            <rect x="60" y="90" width="10" height="10" />
+                                            <rect x="70" y="90" width="10" height="10" />
+                                            <rect x="80" y="90" width="10" height="10" />
+                                            <rect x="90" y="90" width="10" height="10" />
+                                            <rect x="120" y="50" width="10" height="10" />
+                                            <rect x="130" y="50" width="10" height="10" />
+                                            <rect x="140" y="50" width="10" height="10" />
+                                            <rect x="120" y="60" width="10" height="10" />
+                                            <rect x="140" y="60" width="10" height="10" />
+                                            <rect x="120" y="70" width="10" height="10" />
+                                            <rect x="140" y="70" width="10" height="10" />
+                                            <rect x="120" y="80" width="10" height="10" />
+                                            <rect x="140" y="80" width="10" height="10" />
+                                            <rect x="120" y="90" width="10" height="10" />
+                                            <rect x="130" y="90" width="10" height="10" />
+                                            <rect x="140" y="90" width="10" height="10" />
+                                            <rect x="50" y="120" width="10" height="10" />
+                                            <rect x="60" y="120" width="10" height="10" />
+                                            <rect x="70" y="120" width="10" height="10" />
+                                            <rect x="50" y="130" width="10" height="10" />
+                                            <rect x="70" y="130" width="10" height="10" />
+                                            <rect x="50" y="140" width="10" height="10" />
+                                            <rect x="70" y="140" width="10" height="10" />
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">{{ wallet_address|default('vec_' + user.id|string + '_' + '0x...' + user.id|string) }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Scan to transfer VECs to this wallet</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="qr-close-modal inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
+                                Close
+                            </button>
+                            <button type="button" class="ml-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none">
+                                Download
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    
+                    // Close QR modal
+                    const closeButtons = document.querySelectorAll('.qr-close-modal');
+                    closeButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            document.body.removeChild(backdrop);
+                            document.body.removeChild(modal);
+                        });
+                    });
+                    
+                    backdrop.addEventListener('click', () => {
+                        document.body.removeChild(backdrop);
+                        document.body.removeChild(modal);
+                    });
+                });
+            }
+            
+            // Admin Panel Check
+            {% if user.is_admin %}
+            // Show admin notification badge
+            const adminLink = document.querySelector('a[href="/admin"]');
+            if (adminLink) {
+                const pendingApprovals = {{ pending_approvals|default(3) }};
+                if (pendingApprovals > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full ml-2';
+                    badge.textContent = pendingApprovals;
+                    adminLink.appendChild(badge);
+                }
+            }
+            {% endif %}
+            
+            // Copy to clipboard functionality for wallet address
+            const copyButton = document.querySelector('button[title="Copy to clipboard"]');
+            if (copyButton) {
+                copyButton.addEventListener('click', () => {
+                    const walletAddress = copyButton.previousElementSibling.textContent;
+                    navigator.clipboard.writeText(walletAddress).then(() => {
+                        // Show success message
+                        const message = document.createElement('div');
+                        message.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md';
+                        message.innerHTML = '<div class="flex"><div class="flex-shrink-0"><i class="fas fa-check-circle"></i></div><div class="ml-3"><p>Wallet address copied to clipboard!</p></div></div>';
+                        document.body.appendChild(message);
+                        
+                        // Remove message after 3 seconds
+                        setTimeout(() => {
+                            document.body.removeChild(message);
+                        }, 3000);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+ + newPrice;
+                    
+                    const trendIndicator = document.querySelector('.vec-price-trend');
+                    if (trendIndicator) {
+                        if (fluctuation > 0) {
+                            trendIndicator.innerHTML = '<i class="fas fa-caret-up text-green-500"></i> +' + fluctuation.toFixed(2);
+                        } else {
+                            trendIndicator.innerHTML = '<i class="fas fa-caret-down text-red-500"></i> ' + fluctuation.toFixed(2);
+                        }
+                    }
+                }, 5000); // Update every 5 seconds
+            }
+        });
+    </script>
+</body>
+</html>
+                                <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEC Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .vec-gradient {
+            background: linear-gradient(135deg, #20bf55 0%, #01baef 100%);
+        }
+        .bg-eco-green {
+            background-color: #27ae60;
+        }
+        .bg-eco-blue {
+            background-color: #3498db;
+        }
+        .bg-eco-orange {
+            background-color: #e67e22;
+        }
+        .bg-eco-purple {
+            background-color: #9b59b6;
+        }
+        .impact-card {
+            transition: all 0.3s ease;
+        }
+        .impact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        /* Tooltip styles */
+        .tooltip-trigger {
+            position: relative;
+            display: inline-block;
+            margin-top: 5px;
+            cursor: help;
+        }
+        .tooltip {
+            visibility: hidden;
+            width: 220px;
+            background-color: #2d3748;
+            color: white;
+            text-align: center;
+            border-color: #2d3748 transparent transparent transparent;
+        }
+        .tooltip-trigger:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Modal styles */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            backdrop-filter: blur(2px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+        }
+        body.modal-open {
+            overflow: hidden;
+        }
+        .badge-trend-up {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .badge-trend-down {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl font-bold text-green-600">VEC</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="hidden md:ml-6 md:flex md:items-center md:space-x-4">
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Dashboard</a>
+                        <a href="/marketplace" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Marketplace</a>
+                        <a href="/my_certificates" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Certificates</a>
+                        <a href="/account" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-green-600">Account</a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <svg class="-ml-1 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                            </svg>
+                            Active
+                        </span>
+                    </div>
+                    <div class="ml-3 relative">
+                        <div>
+                            <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" id="user-menu-button">
+                                <span class="sr-only">Open user menu</span>
+                                <div class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                                    <span class="text-white font-medium">{{ user.name[0] }}</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Header -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="vec-gradient px-6 py-4">
+                <h1 class="text-2xl font-bold text-white">Welcome back, {{ user.name }}!</h1>
+                <p class="text-white opacity-90">Your clean energy impact dashboard</p>
+            </div>
+            <div class="px-6 py-4 flex flex-wrap justify-between items-center">
+                <div class="flex items-center">
+                    <div class="bg-green-100 rounded-full p-3 mr-4">
+                        <i class="fas fa-bolt text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Current VEC Balance</p>
+                        <p class="text-2xl font-bold">{{ vec_balance }} <span class="text-sm font-normal text-gray-500">VEC</span> <span class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2" title="Current market value of your VEC balance">≈ ${{ (vec_balance * 5.00)|round(2) }}</span></p>
+                        <p class="text-xs text-gray-500 mt-1">Current rate: $5.00 per VEC</p>
+                    </div>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <div class="inline-flex rounded-md shadow">
+                        <button id="upload-modal-trigger" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                            <i class="fas fa-upload mr-2"></i> Upload Energy Data
+                        </button>
+                    </div>
+                    <div class="inline-flex rounded-md shadow ml-3">
+                        <button id="burn-modal-trigger" class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                            <i class="fas fa-fire mr-2"></i> Burn VECs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environmental Impact -->
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Your Environmental Impact</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-green px-4 py-2">
+                    <h3 class="text-white font-medium">Clean Energy</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-solar-panel text-4xl text-eco-green"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ total_kwh }}</p>
+                            <p class="text-sm text-gray-500">kWh Verified</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Clean energy verified through meter readings and validated by VEC system
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-blue px-4 py-2">
+                    <h3 class="text-white font-medium">CO₂ Avoided</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-cloud text-4xl text-eco-blue"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ total_kwh * 0.7 }}</p>
+                            <p class="text-sm text-gray-500">kg CO₂ Equivalent</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Calculated at 0.7 kg CO₂ emissions avoided per kWh of clean energy generated
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-orange px-4 py-2">
+                    <h3 class="text-white font-medium">Trees Equivalent</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-tree text-4xl text-eco-orange"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ (total_kwh * 0.7 / 20)|round(1) }}</p>
+                            <p class="text-sm text-gray-500">Trees for 1 Year</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Based on average carbon sequestration of 20 kg CO₂ per tree per year
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden impact-card">
+                <div class="bg-eco-purple px-4 py-2">
+                    <h3 class="text-white font-medium">Homes Powered</h3>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <i class="fas fa-home text-4xl text-eco-purple"></i>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold">{{ (total_kwh / 30)|round(0) }}</p>
+                            <p class="text-sm text-gray-500">Homes for 1 Day</p>
+                            <div class="tooltip-trigger">
+                                <i class="fas fa-info-circle text-gray-400 hover:text-gray-600"></i>
+                                <div class="tooltip">
+                                    Based on average household consumption of 30 kWh per day
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 30-Day Impact Trend Chart -->
+        <h2 class="text-xl font-bold text-gray-800 mb-4">30-Day Impact Trend</h2>
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8 p-4">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <select id="impact-metric" class="block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                        <option value="kwh">Clean Energy (kWh)</option>
+                        <option value="co2">CO₂ Avoided (kg)</option>
+                        <option value="vecs">VECs Generated</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="px-3 py-1 text-xs text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100">Week</button>
+                    <button class="px-3 py-1 text-xs bg-green-600 text-white border border-green-600 rounded-md">Month</button>
+                    <button class="px-3 py-1 text-xs text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100">Year</button>
+                </div>
+            </div>
+            <div class="relative h-64">
+                <canvas id="impactChart"></canvas>
+            </div>
+        </div>
+
+        <!-- VEC Activity Summary -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800">VEC Activity Summary</h2>
+            </div>
+            <div class="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <svg class="w-32 h-32">
+                            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle class="text-green-600 progress-ring" stroke-width="10" stroke="currentColor" stroke-linecap="round" fill="transparent" r="58" cx="64" cy="64" stroke-dasharray="364.4" stroke-dashoffset="{{ 364.4 * (1 - total_vecs_minted / (total_vecs_minted + vecs_burned)) }}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">{{ total_vecs_minted }}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 font-medium">VECs Minted</p>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <svg class="w-32 h-32">
+                            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle class="text-red-600 progress-ring" stroke-width="10" stroke="currentColor" stroke-linecap="round" fill="transparent" r="58" cx="64" cy="64" stroke-dasharray="364.4" stroke-dashoffset="{{ 364.4 * (1 - vecs_burned / (total_vecs_minted + vecs_burned)) }}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">{{ vecs_burned }}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 font-medium">VECs Burned</p>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <svg class="w-32 h-32">
+                            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle class="text-blue-600 progress-ring" stroke-width="10" stroke="currentColor" stroke-linecap="round" fill="transparent" r="58" cx="64" cy="64" stroke-dasharray="364.4" stroke-dashoffset="{{ 364.4 * (1 - vec_balance / total_vecs_minted) }}"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-2xl font-bold">{{ vec_balance }}</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 font-medium">Current Balance</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity History Tabs -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button id="tab-mint" class="tab-button active-tab text-green-600 border-green-600 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        Mint History
+                    </button>
+                    <button id="tab-burn" class="tab-button text-gray-500 border-transparent whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        Burn History
+                    </button>
+                    <button id="tab-certificates" class="tab-button text-gray-500 border-transparent whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        My Certificates
+                    </button>
+                </nav>
+            </div>
+            <div id="content-mint" class="tab-content px-6 py-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Energy (kWh)</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VECs Minted</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for mint in mint_history %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ mint.date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ mint.kwh }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ mint.vecs }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Verified
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="content-burn" class="tab-content px-6 py-4 hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VECs Burned</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for burn in burn_history %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ burn.date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ burn.vecs }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ burn.purpose }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <a href="/certificate/{{ burn.id }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="content-certificates" class="tab-content px-6 py-4 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for cert in certificates %}
+                    <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div class="bg-gradient-to-r from-green-600 to-blue-500 px-4 py-2">
+                            <h3 class="text-white font-medium">Certificate #{{ cert.id }}</h3>
+                        </div>
+                        <div class="px-4 py-3">
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>Recipient:</strong> {{ cert.recipient_name }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>Date:</strong> {{ cert.date }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>VECs Burned:</strong> {{ cert.vecs }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>CO₂ Avoided:</strong> {{ cert.vecs * 5 * 0.7 }} kg
+                            </p>
+                            <div class="mt-4">
+                                <a href="/certificate/{{ cert.id }}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                    View Certificate
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white mt-8 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <div>
+                <p class="text-gray-500">&copy; {{ year }} Verified Energy Credits (VEC)</p>
+            </div>
+            <div class="flex space-x-6">
+                <a href="#" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Twitter</span>
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">LinkedIn</span>
+                    <i class="fab fa-linkedin"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">GitHub</span>
+                    <i class="fab fa-github"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('text-green-600', 'border-green-600');
+                        btn.classList.add('text-gray-500', 'border-transparent');
+                    });
+                    
+                    // Add active class to clicked button
+                    button.classList.add('text-green-600', 'border-green-600');
+                    button.classList.remove('text-gray-500', 'border-transparent');
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // Show the corresponding content
+                    const contentId = 'content-' + button.id.split('-')[1];
+                    document.getElementById(contentId).classList.remove('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block header %}User Management{% endblock %}
+
+{% block content %}
+<div class="filters">
+    <form method="GET">
+        <div class="form-group">
+            <label for="search">Search by Email:</label>
+            <input type="text" id="search" name="search" placeholder="Enter email..." value="{{ request.args.get('search', '') }}">
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        <a href="{{ url_for('admin_routes.users') }}" class="btn">Reset</a>
+    </form>
+</div>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Name</th>
+        <th>VEC Balance</th>
+        <th>Admin</th>
+        <th>Actions</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.id }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.first_name }} {{ user.last_name }}</td>
+        <td>{{ user.balance }}</td>
+        <td>{{ "Yes" if user.is_admin else "No" }}</td>
+        <td>
+            <a href="{{ url_for('admin_routes.transactions') }}?user_id={{ user.id }}" class="btn">View Transactions</a>
+            {% if not user.is_admin %}
+            <form method="POST" action="{{ url_for('admin_routes.toggle_admin', user_id=user.id) }}" style="display: inline;">
+                <button type="submit" class="btn">Make Admin</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('admin_routes.toggle_admin', user_id=user.id) }}" style="display: inline;">
+                <button type="submit" class="btn">Remove Admin</button>
+            </form>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Certificates</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/styles.css') }}">
+</head>
+<body>
+    <div class="header-area">
+        <div class="user-welcome">Welcome, {{ email }}</div>
+        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+
+    <h2>My Burn Certificates</h2>
+    
+    <div class="certificates-info">
+        <p>These certificates verify your permanent removal of VEC credits from circulation,
+        representing your contribution to renewable energy and carbon reduction.</p>
+    </div>
+    
+    {% if certificates %}
+        <table class="table">
+            <tr>
+                <th>Certificate ID</th>
+                <th>Recipient</th>
+                <th>Amount (VEC)</th>
+                <th>Clean Energy</th>
+                <th>CO₂ Avoided</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+            {% for cert in certificates %}
+            <tr>
+                <td>VEC-BURN-{{ '%08d' % cert.id }}</td>
+                <td>{{ cert.recipient_name }}</td>
+                <td>{{ cert.amount }} VEC</td>
+                <td>{{ cert.amount * 10 }} kWh</td>
+                <td>{{ (cert.amount * 10 * 0.7)|round(2) }} kg</td>
+                <td>{{ cert.burn_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <a href="{{ url_for('certificate', certificate_id=cert.id) }}" class="btn btn-small">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <div class="summary-box">
+            <h3>Your Impact Summary</h3>
+            <div class="impact-cards">
+                <div class="impact-card">
+                    <div class="impact-icon">⚡</div>
+                    <div class="impact-value">{{ certificates|sum(attribute='amount') * 10 }}</div>
+                    <div class="impact-label">Total kWh of Clean Energy</div>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-icon">🌍</div>
+                    <div class="impact-value">{{ (certificates|sum(attribute='amount') * 10 * 0.7)|round(2) }}</div>
+                    <div class="impact-label">Total kg CO₂ Emissions Avoided</div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>You haven't burned any VEC credits yet.</p>
+            <a href="{{ url_for('burn_credits') }}" class="btn">Burn Credits Now</a>
+        </div>
+    {% endif %}
+    
+    <div class="navigation-links">
+        <a href="{{ url_for('burn_credits') }}" class="btn">Burn More Credits</a>
+        <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    </div>
+</body>
+</html>
