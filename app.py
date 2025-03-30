@@ -1,3 +1,15 @@
+
+from functools import wraps
+from flask import session, redirect, url_for
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_session import Session
 import psycopg2
@@ -12,6 +24,8 @@ from admin_routes import admin_routes
 
 # Define Flask app
 app = Flask(__name__, static_url_path='/static', static_folder='static')
+
+
 
 # Configure Flask Sessions
 app.secret_key = "supersecretkey"
@@ -243,30 +257,6 @@ def register():
             conn.close()
 
     return render_template("register.html")
-
-@app.route("/place_order", methods=["POST"])
-@login_required
-def place_order():
-    order_type = request.form["order_type"]
-    price = float(request.form["price"])
-    amount = float(request.form["amount"])
-
-    # Optional: validate balance for sellers
-    if order_type == "sell" and get_vec_balance(current_user.id) < amount:
-        flash("Not enough VECs to place this sell order.", "danger")
-        return redirect(url_for("marketplace"))
-
-    order = Order(
-        user_id=current_user.id,
-        order_type=order_type,
-        price=price,
-        amount=amount,
-        status="open"
-    )
-    db.session.add(order)
-    db.session.commit()
-    flash("Order placed!", "success")
-    return redirect(url_for("marketplace"))
 
 @app.route("/order_book")
 def order_book():
@@ -1045,7 +1035,7 @@ def burn_certificates():
     cur.execute("""
         INSERT INTO burn_certificates (user_id, amount, recipient_name, recipient_email, certificate_hash)
         VALUES (%s, %s, %s, %s, %s)
-    """, (current_user.id, amount, recipient_name, recipient_email, certificate_hash))
+    """, (user.id, amount, recipient_name, recipient_email, certificate_hash))
     conn.commit()
     cur.close()
     conn.close()
