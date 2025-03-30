@@ -34,15 +34,26 @@ Session(app)
 
 app.register_blueprint(admin_routes)
 import os
+import psycopg2
+import urllib.parse as urlparse
 
 def get_db_connection():
+    result = urlparse.urlparse(os.environ["DATABASE_URL"])
+
+    username = result.username
+    password = result.password
+    database = result.path[1:]
+    hostname = result.hostname
+    port = result.port
+
     return psycopg2.connect(
-        host=os.environ["PGHOST"],
-        dbname=os.environ["PGDATABASE"],
-        user=os.environ["PGUSER"],
-        password=os.environ["PGPASSWORD"],
-        port=os.environ["PGPORT"]
+        dbname=database,
+        user=username,
+        password=password,
+        host=hostname,
+        port=port
     )
+
 
 # Triggering redeploy on Railway
 
@@ -61,6 +72,17 @@ def marketplace():
     conn.close()
 
     return render_template("marketplace.html", orders=orders)
+
+@app.route("/test_db")
+def test_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1")  # Or any small query
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return f"DB Connected! Result: {result}"
+
 
 @app.route("/order_book")
 def order_book():
