@@ -28,7 +28,7 @@ app = Flask(__name__, static_url_path='/static', static_folder='static')
 
 
 # Configure Flask Sessions
-app.secret_key = "supersecretkey"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key")
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
@@ -364,14 +364,28 @@ def register():
 
 @app.route("/order_book")
 def order_book():
-    open_orders = Order.query.filter_by(status="open").order_by(Order.price).all()
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT order_type, price, amount
+        FROM orders
+        WHERE status = 'open'
+        ORDER BY price ASC
+    """)
+    orders = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
     return jsonify([
         {
-            "order_type": o.order_type,
-            "price": o.price,
-            "amount": o.amount
-        } for o in open_orders
+            "order_type": o[0],
+            "price": o[1],
+            "amount": o[2]
+        } for o in orders
     ])
+
 
 
 @app.route("/send_credits_page", methods=["GET"])
@@ -927,13 +941,13 @@ def burn_credits():
         else:
             try:
                 # System account that represents "burned" credits
-                burn_account_id = 4  # You'll need to create this account in your database
+                BURN_ACCOUNT_ID = 4  # You'll need to create this account in your database
                 
                 # Insert transaction for burning (transferring to burn account)
                 cursor.execute("""
                     INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type) 
                     VALUES (%s, %s, %s, %s)
-                """, (user_id, burn_account_id, amount, 'burn'))
+                """, (user_id, BURN_ACCOUNT_ID, amount, 'burn'))
                 
                 # Create certificate record
                 cursor.execute("""
@@ -1039,41 +1053,15 @@ CREATE TABLE burn_certificates (
 INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
 VALUES ('burn@vec-system.com', '[generated_hash]', 'Burn', 'Account', false);
 
--- Note the ID of this account and use it as burn_account_id in the burn_credits route
+-- Note the ID of this account and use it as BURN_ACCOUNT_ID in the burn_credits route
 """
 
-# Burn VECs Endpoint
-@app.route('/burn', methods=['POST']) # For API/JS fetch
-@jwt_required()
-def burn_certificates():
-    data = request.get_json()
-    user_id = get_jwt_identity()
-
-    amount = data.get('amount')
-    recipient_name = data.get('recipient_name', '')
-    recipient_email = data.get('recipient_email', '')
-    certificate_hash = data.get('certificate_hash', '')
-
-    if not amount:
-        return jsonify({"message": "Amount is required."}), 400
-
-    try:
-        cur = conn.cursor()
-        cur.execute('''
-            INSERT INTO burn_certificates (user_id, amount, recipient_name, recipient_email, certificate_hash)
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (user_id, amount, recipient_name, recipient_email, certificate_hash))
-        conn.commit()
-        cur.close()
-        return jsonify({"message": "VECs burned successfully."}), 200
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"message": f"Error burning VECs: {str(e)}"}), 500
 
 # Public Burn Summary Endpoint
 @app.route('/burn/summary', methods=['GET'])
 def burn_summary():
     try:
+        conn = get_db_connection()
         cur = conn.cursor()
         cur.execute('''
             SELECT recipient_name, recipient_email, SUM(amount) as total
@@ -1082,6 +1070,7 @@ def burn_summary():
         ''')
         results = cur.fetchall()
         cur.close()
+        conn.close()
         data = [
             {"recipient_name": row[0], "recipient_email": row[1], "total_kwh": float(row[2])} 
             for row in results
@@ -1090,26 +1079,32 @@ def burn_summary():
     except Exception as e:
         return jsonify({"message": f"Error fetching burn summary: {str(e)}"}), 500
 
+
 # Admin Burn Activity View
-@app.route('/admin/burn-activity', methods=['GET']) # For form submission
-@jwt_required()
+@app.route('/admin/burn-activity', methods=['GET'])  # For form submission
+@login_required
 def admin_burn_activity():
-    user_id = get_jwt_identity()
+    user_id = session.get("user_id")
+    conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT is_admin FROM users WHERE id = %s", (user_id,))
-    result = cur.fetchone()
-    if not result or not result[0]:
-        return jsonify({"message": "Unauthorized."}), 403
 
     try:
+        # Admin check
+        cur.execute("SELECT is_admin FROM users WHERE id = %s", (user_id,))
+        result = cur.fetchone()
+        if not result or not result[0]:
+            return jsonify({"message": "Unauthorized."}), 403
+
+        # Main query
         cur.execute('''
-            SELECT users.email, bc.amount, bc.recipient_name, bc.recipient_email, bc.burn_date, bc.certificate_hash
+            SELECT users.email, bc.amount, bc.recipient_name, bc.recipient_email,
+                   bc.burn_date, bc.certificate_hash
             FROM burn_certificates bc
             JOIN users ON bc.user_id = users.id
             ORDER BY bc.burn_date DESC
         ''')
         rows = cur.fetchall()
-        cur.close()
+
         data = [
             {
                 "burner_email": row[0],
@@ -1121,13 +1116,20 @@ def admin_burn_activity():
             }
             for row in rows
         ]
-        return jsonify(data), 200
-    except Exception as e:
-        return jsonify({"message": f"Error fetching admin data: {str(e)}"}), 
 
-@app.route('/burn', methods=['POST'])
+        return jsonify(data), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error fetching admin data: {str(e)}"}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/burn', methods=['POST'])
 @login_required
-def burn_certificates():
+def api_burn_certificates():
     data = request.get_json()
     amount = data.get('amount')
     recipient_name = data.get('recipient_name')
@@ -1139,7 +1141,7 @@ def burn_certificates():
     cur.execute("""
         INSERT INTO burn_certificates (user_id, amount, recipient_name, recipient_email, certificate_hash)
         VALUES (%s, %s, %s, %s, %s)
-    """, (user.id, amount, recipient_name, recipient_email, certificate_hash))
+    """, (session.get("user_id"), amount, recipient_name, recipient_email, certificate_hash))
     conn.commit()
     cur.close()
     conn.close()
