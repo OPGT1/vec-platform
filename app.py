@@ -286,23 +286,6 @@ def match_orders():
     conn.close()
 
 # ✅ FIXED: Initialize the database properly
-def init_db():
-    with app.app_context():  
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name='users' AND column_name='is_admin'
-        """)
-        
-        if cursor.fetchone() is None:
-            cursor.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE")
-            cursor.execute("UPDATE users SET is_admin = TRUE WHERE id = 1")  
-            conn.commit()
-        
-        cursor.close()
-        conn.close()
 
 # ✅ FIXED: Ensure database initializes only on startup
 
