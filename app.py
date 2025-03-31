@@ -38,26 +38,138 @@ import psycopg2
 import urllib.parse as urlparse
 
 def get_db_connection():
-    result = urlparse.urlparse(os.environ["DATABASE_URL"])
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url is None:
+        raise ValueError("DATABASE_URL is not set.")
+    return psycopg2.connect(db_url)
 
-    username = result.username
-    password = result.password
-    database = result.path[1:]
-    hostname = result.hostname
-    port = result.port
-
-    return psycopg2.connect(
-        dbname=database,
-        user=username,
-        password=password,
-        host=hostname,
-        port=port
-    )
 
 
 # Triggering redeploy on Railway
 
-
+def init_db():
+    with app.app_context():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if users table exists
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'users'
+            )
+        """)
+        
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            # Create users table
+            cursor.execute("""
+                CREATE TABLE users (
+                    id SERIAL PRIMARY KEY,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    first_name VARCHAR(100),
+                    last_name VARCHAR(100),
+                    balance DECIMAL(15,2) DEFAULT 0,
+                    is_admin BOOLEAN DEFAULT FALSE
+                )
+            """)
+            
+            # Create other necessary tables
+            cursor.execute("""
+                CREATE TABLE transactions (
+                    id SERIAL PRIMARY KEY,
+                    sender_id INTEGER REFERENCES users(id),
+                    receiver_id INTEGER REFERENCES users(id),
+                    amount DECIMAL(15,2) NOT NULL,
+                    transaction_type VARCHAR(50) DEFAULT 'transfer',
+                    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE orders (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    order_type VARCHAR(10) NOT NULL,
+                    price DECIMAL(15,2) NOT NULL,
+                    amount DECIMAL(15,2) NOT NULL,
+                    status VARCHAR(20) DEFAULT 'open',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE fee_structure (
+                    id SERIAL PRIMARY KEY,
+                    fee_type VARCHAR(50) NOT NULL,
+                    rate DECIMAL(10,5) NOT NULL,
+                    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE burn_certificates (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    amount DECIMAL(15,2) NOT NULL,
+                    recipient_name VARCHAR(255) NOT NULL,
+                    recipient_email VARCHAR(255) NOT NULL,
+                    burn_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    certificate_hash VARCHAR(64)
+                )
+            """)
+            
+            # Create system users
+            admin_password = generate_password_hash("admin123")
+            system_password = generate_password_hash("system123")
+            burn_password = generate_password_hash("burn123")
+            
+            cursor.execute("""
+                INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
+                VALUES ('system@vec-system.com', %s, 'System', 'Account', false)
+            """, (system_password,))
+            
+            cursor.execute("""
+                INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
+                VALUES ('admin@vec-system.com', %s, 'Admin', 'Account', true)
+            """, (admin_password,))
+            
+            cursor.execute("""
+                INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
+                VALUES ('burn@vec-system.com', %s, 'Burn', 'Account', false)
+            """, (burn_password,))
+            
+            # Set initial fee structure
+            cursor.execute("""
+                INSERT INTO fee_structure (fee_type, rate) VALUES
+                ('trading', 0.015),
+                ('verification', 0.01),
+                ('minting', 0.02)
+            """)
+            
+            conn.commit()
+            print("Database initialized successfully!")
+        else:
+            # If table exists, check if is_admin column exists
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'is_admin'
+                )
+            """)
+            
+            column_exists = cursor.fetchone()[0]
+            
+            if not column_exists:
+                cursor.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE")
+                cursor.execute("UPDATE users SET is_admin = TRUE WHERE id = 2")  # Admin account
+                conn.commit()
+                print("Added is_admin column to users table")
+        
+        cursor.close()
+        conn.close()
 
 @app.route("/marketplace")
 def marketplace():
@@ -83,22 +195,6 @@ def test_db():
     conn.close()
     return f"DB Connected! Result: {result}"
 
-
-@app.route("/order_book")
-def order_book():
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-    cursor.execute("SELECT order_type, price, amount FROM orders WHERE status = 'open' ORDER BY price ASC")
-    orders = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    # Convert data into a JSON-friendly format
-    order_list = [{"order_type": o["order_type"], "price": float(o["price"]), "amount": float(o["amount"])} for o in orders]
-
-    return jsonify(order_list)
 
 @app.route("/place_order", methods=["POST"])
 def place_order():
