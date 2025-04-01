@@ -14,7 +14,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_session import Session
 import psycopg2
 import psycopg2.extras
-from werkzeug.security import generate_password_hash, check_password_hash
 from decimal import Decimal
 import os
 import csv
@@ -22,15 +21,85 @@ from werkzeug.utils import secure_filename
 from admin_routes import admin_routes
 
 
+
+from dotenv import load_dotenv
+load_dotenv()  # 👈 this is required to load the .env file
+
+from supabase import create_client, Client
+import os
+# Supabase setup
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 # Define Flask app
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 
-
+# init_db()
 
 # Configure Flask Sessions
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key")
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+
+# SIGNUP
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        # Create Supabase user account
+        result = supabase.auth.sign_up({"email": email, "password": password})
+
+        if result.get("error"):
+            return jsonify({"error": result["error"]["message"]}), 400
+
+        user_id = result["user"]["id"]
+        session["user_id"] = user_id
+
+
+        # Add extended info to your users table
+        supabase.table("users").insert({
+            "id": user_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "balance": 0,
+            "is_admin": False
+        }).execute()
+
+        session["user_id"] = user_id
+        return redirect("/dashboard")
+
+    return render_template("register.html")
+
+# LOGIN
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        result = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
+        if result.get("error"):
+            return jsonify({"error": result["error"]["message"]}), 401
+
+        user_id = result["user"]["id"]
+        session["user_id"] = user_id
+        session["email"] = email
+
+
+        return redirect("/dashboard")
+        
+
 
 app.register_blueprint(admin_routes)
 import os
@@ -43,9 +112,21 @@ def get_db_connection():
         raise ValueError("DATABASE_URL is not set.")
     return psycopg2.connect(db_url)
 
+@app.route("/supabase-test")
+def supabase_test():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    supabase: Client = create_client(url, key)
+
+    try:
+        response = supabase.table("new_table").select("*").limit(1).execute()
+        return jsonify({"message": "Connection successful!", "data": response.data})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # Triggering redeploy on Railway
+
 
 def init_db():
     with app.app_context():
@@ -68,7 +149,7 @@ def init_db():
                 CREATE TABLE users (
                     id SERIAL PRIMARY KEY,
                     email VARCHAR(255) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
+                    
                     first_name VARCHAR(100),
                     last_name VARCHAR(100),
                     balance DECIMAL(15,2) DEFAULT 0,
@@ -122,24 +203,8 @@ def init_db():
             """)
             
             # Create system users
-            admin_password = generate_password_hash("admin123")
-            system_password = generate_password_hash("system123")
-            burn_password = generate_password_hash("burn123")
             
-            cursor.execute("""
-                INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
-                VALUES ('system@vec-system.com', %s, 'System', 'Account', false)
-            """, (system_password,))
-            
-            cursor.execute("""
-                INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
-                VALUES ('admin@vec-system.com', %s, 'Admin', 'Account', true)
-            """, (admin_password,))
-            
-            cursor.execute("""
-                INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
-                VALUES ('burn@vec-system.com', %s, 'Burn', 'Account', false)
-            """, (burn_password,))
+           
             
             # Set initial fee structure
             cursor.execute("""
@@ -293,74 +358,7 @@ def match_orders():
 with app.app_context():
     init_db()
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
 
-        print(f"🔍 Attempting login for: {email}")
-
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        try:
-            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-            user = cursor.fetchone()
-            
-            if user and check_password_hash(user["password_hash"], password):
-                session["user_id"] = user["id"]
-                session["email"] = user["email"]
-                flash("Login successful!", "success")
-                return redirect(url_for("dashboard"))
-            else:
-                flash("Invalid email or password.", "danger")
-                
-        except Exception as e:
-            conn.rollback()
-            print(f"Login error: {e}")
-            flash("A database error occurred. Please try again.", "danger")
-            
-        finally:
-            cursor.close()
-            conn.close()
-    
-    return render_template("login.html")
-
-
-@app.route("/")
-def home():
-    return redirect(url_for("login"))  # Redirects to the login page
-@app.route("/logout")
-def logout():
-    session.clear()  # Clears session data (logs out user)
-    flash("You have been logged out.", "info")
-    return redirect(url_for("login"))
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-        first_name = request.form["first_name"]
-        last_name = request.form["last_name"]
-        hashed_password = generate_password_hash(password)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute("INSERT INTO users (email, password_hash, first_name, last_name) VALUES (%s, %s, %s, %s)", 
-                           (email, hashed_password, first_name, last_name))
-            conn.commit()
-            flash("Registration successful! You can now log in.", "success")
-            return redirect(url_for("login"))
-        except psycopg2.Error:
-            flash("Email already registered.", "danger")
-            conn.rollback()
-        finally:
-            cursor.close()
-            conn.close()
-
-    return render_template("register.html")
 
 @app.route("/order_book")
 def order_book():
@@ -411,7 +409,9 @@ def send_credits_page():
     cursor.close()
     conn.close()
     
-    return render_template("send_credits.html", email=session["email"], balance=user_balance)
+    return render_template("send_credits.html", balance=user_balance)
+
+    
 
 # 3. Fix duplicate energy_data processing and implement the missing data processing functions
 def process_transaction_data(filepath, user_id):
@@ -470,22 +470,19 @@ def process_user_data(filepath):
                     email = row.get('email')
                     first_name = row.get('first_name')
                     last_name = row.get('last_name')
-                    password = row.get('password')
+                    
                     
                     # Check if user already exists
                     cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
                     if cursor.fetchone():
                         print(f"User {email} already exists, skipping.")
                         continue
-                    
-                    # Create a hashed password
-                    hashed_password = generate_password_hash(password)
-                    
+                   
                     # Insert the new user
                     cursor.execute("""
-                        INSERT INTO users (email, password_hash, first_name, last_name) 
-                        VALUES (%s, %s, %s, %s)
-                    """, (email, hashed_password, first_name, last_name))
+                        INSERT INTO users (email, first_name, last_name) 
+                        VALUES (%s, %s, %s)
+                    """, (email, first_name, last_name))
                     
                 except Exception as e:
                     print(f"Error processing user row: {e}")
@@ -1050,7 +1047,7 @@ CREATE TABLE burn_certificates (
 
 # 5. Create a special "Burn" account in your database
 """
-INSERT INTO users (email, password_hash, first_name, last_name, is_admin) 
+INSERT INTO users (email, first_name, last_name, is_admin) 
 VALUES ('burn@vec-system.com', '[generated_hash]', 'Burn', 'Account', false);
 
 -- Note the ID of this account and use it as BURN_ACCOUNT_ID in the burn_credits route
@@ -1147,6 +1144,15 @@ def api_burn_certificates():
     conn.close()
 
     return jsonify({'message': 'Burn recorded successfully.'}), 200
+
+@app.route('/credits')
+def credits():
+    try:
+        data = supabase.table('users').select("email, balance").execute()
+        return jsonify({"data": data.data})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
