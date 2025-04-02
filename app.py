@@ -94,9 +94,14 @@ def login():
         session["user_id"] = user_id
         session["email"] = email
 
-
         return redirect("/dashboard")
-        
+
+    # <-- this MUST be outside the if block
+    return render_template("login.html")
+
+
+
+
 import stripe
 import os
 
