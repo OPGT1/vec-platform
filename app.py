@@ -95,10 +95,9 @@ def login():
         session["email"] = email
 
         return redirect("/dashboard")
-
-    # <-- this MUST be outside the if block
+        
+    # Add this return statement for the GET request case
     return render_template("login.html")
-
 
 
 
