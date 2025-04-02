@@ -28,45 +28,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 import stripe
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 
-# Set your secret key
-stripe.api_key = "your_stripe_secret_key"  # Replace with your actual secret key
-
-@app.route("/create-checkout-session", methods=["POST"])
-def create_checkout_session():
-    if "user_id" not in session:
-        return jsonify({"error": "Not authenticated"}), 403
-
-    data = request.get_json()
-    package = data.get("package")
-
-    # Define your Stripe price IDs (you must have these set up in Stripe dashboard)
-    price_ids = {
-        "100": "price_XXX_100",
-        "500": "price_XXX_500",
-        "1000": "price_XXX_1000"
-    }
-
-    try:
-        session_obj = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
-                {
-                    "price": price_ids[package],
-                    "quantity": 1,
-                }
-            ],
-            mode="payment",
-            success_url=url_for("payment_success", _external=True),
-            cancel_url=url_for("payment_cancel", _external=True),
-            metadata={
-                "user_id": session["user_id"]
-            }
-        )
-        return jsonify({"id": session_obj.id})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 
 # Define Flask app
 app = Flask(__name__, static_url_path='/static', static_folder='static')
