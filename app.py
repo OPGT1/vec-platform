@@ -40,6 +40,9 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key")
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+@app.route("/")
+def home():
+    return redirect(url_for("login"))
 
 # SIGNUP
 @app.route("/signup", methods=["GET", "POST"])
