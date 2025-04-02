@@ -109,6 +109,10 @@ import os
 import psycopg2
 import urllib.parse as urlparse
 
+@app.route("/ping")
+def ping():
+    return "pong", 200
+
 
 @app.route("/supabase-test")
 def supabase_test():
@@ -127,7 +131,7 @@ def supabase_test():
 
 
 #def init_db():
-    with app.app_context():
+    #with app.app_context():
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -1086,6 +1090,7 @@ def credits():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+
 
 
