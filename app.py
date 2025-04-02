@@ -102,6 +102,49 @@ def login():
     # Add this return statement for the GET request case
     return render_template("login.html")
 
+@app.route("/forgot_password")
+def forgot_password():
+    return render_template("forgot_password.html")
+
+# Add this route to your app.py file
+
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email")
+        
+        # Check if email exists in your database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+            
+            if user:
+                # In a real implementation, you would:
+                # 1. Generate a reset token
+                # 2. Store it in your database with an expiration time
+                # 3. Send an email with a reset link
+                
+                # For now, we'll just show a success message
+                flash("If an account exists with that email, we've sent password reset instructions.", "success")
+            else:
+                # Don't reveal that the email doesn't exist for security reasons
+                flash("If an account exists with that email, we've sent password reset instructions.", "success")
+                
+            return redirect(url_for("login"))
+            
+        except Exception as e:
+            conn.rollback()
+            print(f"Password reset error: {e}")
+            flash("An error occurred. Please try again later.", "danger")
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    return render_template("forgot_password.html")
 
 
 import stripe
