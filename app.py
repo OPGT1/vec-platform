@@ -28,6 +28,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 import stripe
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 
+from utils import get_db_connection, login_required
 
 # Define Flask app
 app = Flask(__name__, static_url_path='/static', static_folder='static')
