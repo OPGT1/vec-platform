@@ -1,0 +1,85 @@
+<!-- Add this to your admin/dashboard.html file where you want the mint button to appear -->
+
+<div class="admin-action-card">
+    <div class="action-icon">
+        <i class="fas fa-coins"></i>
+    </div>
+    <div class="action-content">
+        <h3>Mint VEC Credits</h3>
+        <p>Create new credits and assign them to users in the system</p>
+        <a href="{{ url_for('admin.mint_credits') }}" class="btn mint-btn">
+            <i class="fas fa-plus-circle"></i> Mint Credits
+        </a>
+    </div>
+</div>
+
+<!-- Add this CSS to your admin/dashboard.html or to layout.html if you want to reuse the style -->
+<style>
+    .admin-action-card {
+        display: flex;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .admin-action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    }
+    
+    .action-icon {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+        width: 70px;
+        height: 70px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .action-icon i {
+        font-size: 2rem;
+    }
+    
+    .action-content {
+        flex: 1;
+    }
+    
+    .action-content h3 {
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .action-content p {
+        color: var(--gray-color);
+        margin-bottom: 1rem;
+    }
+    
+    .mint-btn {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        display: inline-block;
+        width: auto;
+        padding: 0.5rem 1rem;
+    }
+    
+    .mint-btn:hover {
+        box-shadow: 0 4px 12px rgba(243, 156, 18, 0.35);
+    }
+    
+    @media (max-width: 576px) {
+        .admin-action-card {
+            flex-direction: column;
+        }
+        
+        .action-icon {
+            margin-right: 0;
+            margin-bottom: 1rem;
+        }
+    }
+</style>

@@ -1,92 +1,313 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='assets/css/styles.css') }}">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buy VEC Credits</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/styles.css') }}">
-</head>
-<body>
-    <h1>Buy VEC Credits</h1>
-    <p>You are logged in as {{ email }}</p>
-    <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
-    
-    <div class="balance">
-        Current Balance: <span class="balance-amount">${{ balance }}</span>
+{% extends "layout.html" %}
+
+{% block title %}Buy VEC Credits{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div class="page-header">
+        <h2>Buy VEC Credits</h2>
+        <p>Purchase renewable energy credits to support clean energy</p>
     </div>
     
-    <h2>Select Credit Package</h2>
-    
-    <form method="POST" action="{{ url_for('process_purchase') }}">
-        <div class="credit-packages">
-            <div class="package">
-                <input type="radio" id="package1" name="package" value="100" checked>
-                <label for="package1">
-                    <strong>Starter Package</strong>
-                    <p>100 VEC Credits</p>
-                    <p class="price">$500.00</p>
-                </label>
-            </div>
-            
-            <div class="package">
-                <input type="radio" id="package2" name="package" value="500">
-                <label for="package2">
-                    <strong>Standard Package</strong>
-                    <p>500 VEC Credits</p>
-                    <p class="price">$2,500.00</p>
-                </label>
-            </div>
-            
-            <div class="package">
-                <input type="radio" id="package3" name="package" value="1000">
-                <label for="package3">
-                    <strong>Premium Package</strong>
-                    <p>1000 VEC Credits</p>
-                    <p class="price">$5,000.00</p>
-                </label>
-            </div>
-            
-            <h3>Payment Information</h3>
-            <!-- This section would be replaced by Stripe Elements in production -->
-            <div class="payment-details">
-                <div class="form-group">
-                    <label for="card-number">Card Number</label>
-                    <input type="text" id="card-number" placeholder="1234 5678 9012 3456" required>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="expiry">Expiration Date</label>
-                        <input type="text" id="expiry" placeholder="MM/YY" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cvc">CVC</label>
-                        <input type="text" id="cvc" placeholder="123" required>
-                    </div>
-                </div>
-            </div>
-            
-            <button type="submit" class="btn btn-large">Complete Purchase</button>
+    <div class="balance-card">
+        <div class="balance-info">
+            <span class="balance-label">Current Balance:</span>
+            <span class="balance-amount">{{ balance }} VEC</span>
         </div>
-    </form>
-    
-    <div class="navigation-links">
-        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
     </div>
     
-    <!-- This would be replaced with Stripe JS in production -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Simple calculation of price based on package selection
-            const packageRadios = document.querySelectorAll('input[name="package"]');
-            packageRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    console.log('Selected package: ' + this.value + ' credits');
-                });
+    <h3>Select Credit Package</h3>
+    
+    <div class="credit-packages">
+        <div class="package-row">
+            <div class="package" id="package-100">
+                <div class="package-header">
+                    <h4>Starter Package</h4>
+                    <span class="package-price">$500.00</span>
+                </div>
+                <div class="package-content">
+                    <span class="credit-amount">100 VEC Credits</span>
+                    <p class="package-desc">Perfect for individuals starting their renewable energy journey</p>
+                    <button class="btn checkout-button" data-package="100" data-price="500.00">Select Package</button>
+                </div>
+            </div>
+            
+            <div class="package" id="package-500">
+                <div class="package-header">
+                    <h4>Standard Package</h4>
+                    <span class="package-price">$2,500.00</span>
+                </div>
+                <div class="package-content">
+                    <span class="credit-amount">500 VEC Credits</span>
+                    <p class="package-desc">Great value for businesses and dedicated individuals</p>
+                    <button class="btn checkout-button" data-package="500" data-price="2500.00">Select Package</button>
+                </div>
+            </div>
+            
+            <div class="package" id="package-1000">
+                <div class="package-header popular">
+                    <h4>Premium Package</h4>
+                    <span class="package-price">$5,000.00</span>
+                </div>
+                <div class="package-content">
+                    <span class="credit-amount">1000 VEC Credits</span>
+                    <p class="package-desc">Best value for companies committed to sustainability</p>
+                    <button class="btn checkout-button" data-package="1000" data-price="5000.00">Select Package</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="payment-info">
+        <div class="payment-icon">
+            <i class="fas fa-lock"></i>
+        </div>
+        <div class="payment-text">
+            <p>Secure payments processed by Stripe. Your payment information is never stored on our servers.</p>
+        </div>
+    </div>
+    
+    <div class="impact-section">
+        <h3>Your Impact</h3>
+        <div class="impact-cards">
+            <div class="impact-card">
+                <i class="fas fa-bolt"></i>
+                <h4>Clean Energy</h4>
+                <p>Each VEC credit represents 10 kWh of renewable energy</p>
+            </div>
+            <div class="impact-card">
+                <i class="fas fa-tree"></i>
+                <h4>Carbon Reduction</h4>
+                <p>Reduce your carbon footprint and support green initiatives</p>
+            </div>
+            <div class="impact-card">
+                <i class="fas fa-certificate"></i>
+                <h4>Certification</h4>
+                <p>Get certificates to showcase your environmental commitment</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_styles %}
+.balance-card {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.balance-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.balance-label {
+    font-size: 1.1rem;
+    color: var(--dark-color);
+}
+
+.balance-amount {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.credit-packages {
+    margin-bottom: 2rem;
+}
+
+.package-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.package {
+    flex: 1;
+    min-width: 250px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-bottom: 1rem;
+}
+
+.package:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.package-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.package-header h4 {
+    margin: 0;
+    color: var(--dark-color);
+    font-size: 1.2rem;
+}
+
+.package-header.popular {
+    background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+    position: relative;
+}
+
+.package-header.popular::after {
+    content: "Popular";
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+}
+
+.package-price {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--dark-color);
+    margin-top: 0.5rem;
+}
+
+.package-content {
+    padding: 1.5rem;
+}
+
+.credit-amount {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.package-desc {
+    color: var(--gray-color);
+    margin-bottom: 1.5rem;
+    min-height: 3rem;
+}
+
+.checkout-button {
+    width: 100%;
+}
+
+.payment-info {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.payment-icon {
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: var(--dark-color);
+}
+
+.payment-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--gray-color);
+}
+
+.impact-section {
+    margin-top: 2rem;
+}
+
+.impact-cards {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.impact-card {
+    flex: 1;
+    min-width: 200px;
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.impact-card i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.impact-card h4 {
+    margin-bottom: 0.75rem;
+}
+
+.impact-card p {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .package-row {
+        flex-direction: column;
+    }
+    
+    .impact-cards {
+        flex-direction: column;
+    }
+}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Stripe
+        const stripe = Stripe('{{ stripe_publishable_key }}');
+        
+        // Handle package selection and checkout
+        const checkoutButtons = document.querySelectorAll('.checkout-button');
+        
+        checkoutButtons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const package = this.getAttribute('data-package');
+                
+                try {
+                    // Create a checkout session
+                    const response = await fetch('/create-checkout-session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            package: package
+                        }),
+                    });
+                    
+                    const session = await response.json();
+                    
+                    // Redirect to Stripe Checkout
+                    if (session.id) {
+                        stripe.redirectToCheckout({ sessionId: session.id });
+                    } else {
+                        alert('Error creating checkout session');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                }
             });
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

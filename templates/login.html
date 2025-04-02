@@ -1,28 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='assets/css/styles.css') }}">
-</head>
-<body>
-    <div class="login-container">
-        <h2>Login</h2>
-        <form method="POST">
-            <div class="form-group">
-                <input type="email" name="email" placeholder="Email" required>
-            </div>
-            <div class="form-group">
-                <input type="password" name="password" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn">Login</button>
-        </form>
-        <div class="links">
-            <a href="{{ url_for('signup') }}">Register here</a>
-        </div>
+{% extends "layout.html" %}
+
+{% block title %}Login - VEC Platform{% endblock %}
+
+{% block additional_styles %}
+.login-illustration {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-illustration i {
+    font-size: 3.5rem;
+    color: var(--primary-color);
+    background: rgba(46, 204, 113, 0.1);
+    height: 100px;
+    width: 100px;
+    line-height: 100px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.remember-me input {
+    margin-right: 0.5rem;
+}
+
+.social-login {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.social-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.social-btn:hover {
+    transform: translateY(-3px);
+}
+
+.social-btn.google {
+    background: #DB4437;
+}
+
+.social-btn.linkedin {
+    background: #0077B5;
+}
+
+.social-btn.github {
+    background: #333;
+}
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div class="login-illustration">
+        <i class="fas fa-bolt"></i>
+        <h2>Welcome Back</h2>
+        <p>Enter your credentials to access your account</p>
     </div>
-</body>
-</html>
-
-
+    
+    <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required>
+        </div>
+        
+        <div class="remember-me">
+            <input type="checkbox" id="remember-me" name="remember-me">
+            <label for="remember-me">Remember me</label>
+        </div>
+        
+        <button type="submit" class="btn">
+            <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+    </form>
+    
+    <div class="form-divider">
+        <hr><span>OR</span><hr>
+    </div>
+    
+    <div class="social-login">
+        <a href="#" class="social-btn google"><i class="fab fa-google"></i></a>
+        <a href="#" class="social-btn linkedin"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="social-btn github"><i class="fab fa-github"></i></a>
+    </div>
+    
+    <div class="links">
+        <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></p>
+        <p><a href="{{ url_for('forgot_password') }}">Forgot password?</a></p>
+    </div>
+</div>
+{% endblock %}

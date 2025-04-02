@@ -1,0 +1,196 @@
+{% extends "layout.html" %}
+
+{% block title %}Mint Credits - Admin | VEC Platform{% endblock %}
+
+{% block additional_styles %}
+.mint-illustration {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.mint-illustration i {
+    font-size: 3.5rem;
+    color: #f39c12;
+    background: rgba(243, 156, 18, 0.1);
+    height: 100px;
+    width: 100px;
+    line-height: 100px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.input-icon {
+    position: relative;
+}
+
+.input-icon input {
+    padding-left: 3rem;
+}
+
+.input-icon i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-color);
+}
+
+.amount-group {
+    position: relative;
+}
+
+.amount-group input {
+    padding-left: 3.5rem;
+}
+
+.amount-group::before {
+    content: "VEC";
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dark-color);
+    font-weight: 600;
+    z-index: 1;
+}
+
+.admin-box {
+    background-color: rgba(46, 204, 113, 0.1);
+    border-left: 4px solid var(--primary-color);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 5px;
+}
+
+.admin-box h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-box p {
+    color: var(--dark-color);
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.transaction-preview {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+}
+
+.transaction-preview h4 {
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.transaction-detail {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.transaction-detail .label {
+    color: var(--gray-color);
+}
+
+.transaction-detail .value {
+    color: var(--dark-color);
+    font-weight: 500;
+}
+
+.mint-btn {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.mint-btn:hover {
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.35);
+}
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div class="mint-illustration">
+        <i class="fas fa-coins"></i>
+        <h2>Mint VEC Credits</h2>
+        <p>Create new credits and assign them to users</p>
+    </div>
+    
+    <div class="admin-box">
+        <h3><i class="fas fa-shield-alt"></i> Admin Action</h3>
+        <p>This is a privileged operation. New credits will be created in the system and added to the user's balance.</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('admin.mint_credits') }}" id="mint-form">
+        <div class="form-group">
+            <label for="recipient_email">Recipient Email</label>
+            <div class="input-icon">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="recipient_email" name="recipient_email" placeholder="user@example.com" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="amount">Amount (VEC)</label>
+            <div class="amount-group">
+                <input type="number" id="amount" name="amount" placeholder="0.00" min="0.01" step="0.01" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description (Optional)</label>
+            <textarea id="description" name="description" placeholder="Reason for minting credits" rows="3"></textarea>
+        </div>
+        
+        <div class="transaction-preview">
+            <h4>Transaction Preview</h4>
+            <div class="transaction-detail">
+                <span class="label">Sender:</span>
+                <span class="value">System Account</span>
+            </div>
+            <div class="transaction-detail">
+                <span class="label">Recipient:</span>
+                <span class="value" id="preview-recipient">-</span>
+            </div>
+            <div class="transaction-detail">
+                <span class="label">Amount:</span>
+                <span class="value" id="preview-amount">0.00 VEC</span>
+            </div>
+            <div class="transaction-detail">
+                <span class="label">Transaction Type:</span>
+                <span class="value">Mint</span>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn mint-btn">
+            <i class="fas fa-coins"></i> Mint Credits
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const recipientInput = document.getElementById('recipient_email');
+        const amountInput = document.getElementById('amount');
+        const previewRecipient = document.getElementById('preview-recipient');
+        const previewAmount = document.getElementById('preview-amount');
+        
+        recipientInput.addEventListener('input', function() {
+            previewRecipient.textContent = this.value || '-';
+        });
+        
+        amountInput.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            previewAmount.textContent = amount.toFixed(2) + ' VEC';
+        });
+    });
+</script>
+{% endblock %}

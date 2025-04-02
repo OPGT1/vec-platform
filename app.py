@@ -20,7 +20,7 @@ import csv
 from werkzeug.utils import secure_filename
 from admin_routes import admin_routes
 
-
+from stripe_routes import stripe_routes
 
 from dotenv import load_dotenv
 load_dotenv()  # 👈 this is required to load the .env file
@@ -31,6 +31,49 @@ import os
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+import stripe
+from flask import Flask, request, jsonify, render_template, redirect, url_for
+
+# Set your secret key
+stripe.api_key = "your_stripe_secret_key"  # Replace with your actual secret key
+
+@app.route("/create-checkout-session", methods=["POST"])
+def create_checkout_session():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 403
+
+    data = request.get_json()
+    package = data.get("package")
+
+    # Define your Stripe price IDs (you must have these set up in Stripe dashboard)
+    price_ids = {
+        "100": "price_XXX_100",
+        "500": "price_XXX_500",
+        "1000": "price_XXX_1000"
+    }
+
+    try:
+        session_obj = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price": price_ids[package],
+                    "quantity": 1,
+                }
+            ],
+            mode="payment",
+            success_url=url_for("payment_success", _external=True),
+            cancel_url=url_for("payment_cancel", _external=True),
+            metadata={
+                "user_id": session["user_id"]
+            }
+        )
+        return jsonify({"id": session_obj.id})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 # Define Flask app
 app = Flask(__name__, static_url_path='/static', static_folder='static')
@@ -99,9 +142,14 @@ def login():
 
         return redirect("/dashboard")
         
+import stripe
+import os
+
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
 
 app.register_blueprint(admin_routes)
+app.register_blueprint(stripe_routes)
 import os
 import psycopg2
 import urllib.parse as urlparse
@@ -543,30 +591,7 @@ def process_energy_data(filepath, user_id):
 
 
 
-@app.route("/buy_credits", methods=["GET"])
-def buy_credits():
-    if "user_id" not in session:
-        flash("You must be logged in to buy credits.", "warning")
-        return redirect(url_for("login"))
-    
-    user_id = session["user_id"]
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    
-    # Calculate balance
-    cursor.execute("""
-        SELECT
-            COALESCE((SELECT SUM(amount) FROM transactions WHERE receiver_id = %s), 0) AS total_received,
-            COALESCE((SELECT SUM(amount) FROM transactions WHERE sender_id = %s), 0) AS total_sent
-    """, (user_id, user_id))
-    
-    balance_result = cursor.fetchone()
-    user_balance = balance_result["total_received"] - balance_result["total_sent"]
-    
-    cursor.close()
-    conn.close()
-    
-    return render_template("buy_credits.html", email=session["email"], balance=user_balance)
+
 
 
 @app.route("/send_credits", methods=["POST"])
@@ -737,52 +762,6 @@ def dashboard():
         cursor.close()
         conn.close()
 
-
-@app.route("/process_purchase", methods=["POST"])
-def process_purchase():
-    if "user_id" not in session:
-        flash("You must be logged in to complete this purchase.", "warning")
-        return redirect(url_for("login"))
-    
-    package = request.form["package"]
-    
-    if package == "100":
-        credits = 100
-        amount = 500.00
-    elif package == "500":
-        credits = 500
-        amount = 2500.00
-    elif package == "1000":
-        credits = 1000
-        amount = 5000.00
-    else:
-        flash("Invalid package selected", "danger")
-        return redirect(url_for("buy_credits"))
-
-    user_id = session["user_id"]
-    system_id = 1  # Assuming system account ID is 1
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # ✅ Fixed: Now executing the transaction properly
-        cursor.execute(
-            "INSERT INTO transactions (sender_id, receiver_id, amount) VALUES (%s, %s, %s)",
-            (system_id, user_id, credits)
-        )
-        conn.commit()
-        flash(f"Successfully purchased {credits} VEC credits for ${amount:.2f}!", "success")
-        
-    except Exception as e:
-        conn.rollback()
-        flash(f"Purchase failed: {e}", "danger")
-        
-    finally:
-        cursor.close()
-        conn.close()
-
-    return redirect(url_for("dashboard"))
 
 
 
@@ -1152,6 +1131,8 @@ def credits():
         return jsonify({"data": data.data})
     except Exception as e:
         return jsonify({"error": str(e)})
+
+
 
 
 if __name__ == "__main__":

@@ -1,20 +1,158 @@
-<!-- templates/signup.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sign Up - VEC</title>
-</head>
-<body>
-    <h2>Create a New Account</h2>
-    <form method="POST">
-        <label>Email:</label><br>
-        <input type="email" name="email" required><br><br>
+{% extends "layout.html" %}
 
-        <label>Password:</label><br>
-        <input type="password" name="password" required><br><br>
+{% block title %}Sign Up - VEC Platform{% endblock %}
 
-        <button type="submit">Sign Up</button>
+{% block additional_styles %}
+.signup-illustration {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.signup-illustration i {
+    font-size: 3.5rem;
+    color: var(--accent-color);
+    background: rgba(52, 152, 219, 0.1);
+    height: 100px;
+    width: 100px;
+    line-height: 100px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.name-fields {
+    display: flex;
+    gap: 1rem;
+}
+
+.name-fields .form-group {
+    flex: 1;
+}
+
+.social-signup {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.social-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.social-btn:hover {
+    transform: translateY(-3px);
+}
+
+.social-btn.google {
+    background: #DB4437;
+}
+
+.social-btn.linkedin {
+    background: #0077B5;
+}
+
+.social-btn.github {
+    background: #333;
+}
+
+.terms {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.terms input {
+    margin-right: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.terms label {
+    font-size: 0.9rem;
+    color: var(--gray-color);
+}
+
+.terms label a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.terms label a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+    .name-fields {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="content-box">
+    <div class="signup-illustration">
+        <i class="fas fa-user-plus"></i>
+        <h2>Create Account</h2>
+        <p>Join the sustainable energy revolution</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('signup') }}">
+        <div class="name-fields">
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" placeholder="John" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" placeholder="Doe" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+        </div>
+        
+        <div class="terms">
+            <input type="checkbox" id="terms" name="terms" required>
+            <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+        </div>
+        
+        <button type="submit" class="btn">
+            <i class="fas fa-user-plus"></i> Create Account
+        </button>
     </form>
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
-</body>
-</html>
+    
+    <div class="form-divider">
+        <hr><span>OR</span><hr>
+    </div>
+    
+    <div class="social-signup">
+        <a href="#" class="social-btn google"><i class="fab fa-google"></i></a>
+        <a href="#" class="social-btn linkedin"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="social-btn github"><i class="fab fa-github"></i></a>
+    </div>
+    
+    <div class="links">
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+    </div>
+</div>
+{% endblock %}

@@ -10,7 +10,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
+# admin_routes.py - Blueprint for admin routes
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 import psycopg2
 import psycopg2.extras
@@ -54,6 +54,115 @@ def return_db_connection(conn):
 
 admin_routes = Blueprint('admin_routes', __name__, url_prefix='/admin')
 
+# Import your database connection function
+from app import get_db_connection
+
+# Create an admin blueprint
+admin_routes = Blueprint('admin', __name__, url_prefix='/admin')
+
+def admin_required(f):
+    """Decorator to check if user is admin before allowing access to a route"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            flash("You must be logged in to access this page.", "danger")
+            return redirect(url_for("login"))
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Check if user is admin
+            cursor.execute("SELECT is_admin FROM users WHERE id = %s", (session["user_id"],))
+            user = cursor.fetchone()
+            
+            if not user or not user[0]:
+                flash("You do not have permission to access this page.", "danger")
+                return redirect(url_for("dashboard"))
+                
+        except Exception as e:
+            conn.rollback()
+            flash(f"An error occurred: {e}", "danger")
+            return redirect(url_for("dashboard"))
+            
+        finally:
+            cursor.close()
+            conn.close()
+            
+        return f(*args, **kwargs)
+        
+    return decorated_function
+
+@admin_routes.route("/dashboard")
+@admin_required
+def admin_dashboard():
+    """Admin dashboard route"""
+    return render_template("admin/dashboard.html")
+
+@admin_routes.route("/mint_credits", methods=["GET", "POST"])
+@admin_required
+def mint_credits():
+    """Admin route to mint new VEC credits for users"""
+    
+    if request.method == "POST":
+        recipient_email = request.form.get("recipient_email")
+        amount = float(request.form.get("amount"))
+        description = request.form.get("description", "Admin credit minting")
+        
+        # Validate input
+        if amount <= 0:
+            flash("Amount must be greater than zero.", "danger")
+            return redirect(url_for("admin.mint_credits"))
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Get system account ID (usually ID 1)
+            system_id = 1
+            
+            # Find recipient by email
+            cursor.execute("SELECT id FROM users WHERE email = %s", (recipient_email,))
+            recipient_result = cursor.fetchone()
+            
+            if not recipient_result:
+                flash(f"User with email {recipient_email} not found.", "danger")
+                return redirect(url_for("admin.mint_credits"))
+                
+            recipient_id = recipient_result[0]
+            
+            # Record the transaction
+            cursor.execute("""
+                INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type, description)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (system_id, recipient_id, amount, 'mint', description))
+            
+            transaction_id = cursor.fetchone()[0]
+            
+            # If you have a users table with balance column, update it
+            # Uncomment this if you maintain balance in users table
+            # cursor.execute("""
+            #     UPDATE users SET balance = balance + %s WHERE id = %s
+            # """, (amount, recipient_id))
+            
+            conn.commit()
+            
+            flash(f"Successfully minted {amount} VEC credits for {recipient_email}!", "success")
+            return redirect(url_for("admin.admin_dashboard"))
+            
+        except Exception as e:
+            conn.rollback()
+            flash(f"An error occurred while minting credits: {e}", "danger")
+            return redirect(url_for("admin.mint_credits"))
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    return render_template("admin/mint_credits.html")
+
+# Add more admin routes as needed below
 
 @admin_routes.route('/dashboard')
 @admin_required
