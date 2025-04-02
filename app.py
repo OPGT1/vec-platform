@@ -2,13 +2,6 @@
 from functools import wraps
 from flask import session, redirect, url_for
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get("user_id"):
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated_function
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_session import Session
@@ -154,11 +147,6 @@ import os
 import psycopg2
 import urllib.parse as urlparse
 
-def get_db_connection():
-    db_url = os.environ.get("DATABASE_URL")
-    if db_url is None:
-        raise ValueError("DATABASE_URL is not set.")
-    return psycopg2.connect(db_url)
 
 @app.route("/supabase-test")
 def supabase_test():

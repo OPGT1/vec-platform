@@ -55,7 +55,8 @@ def return_db_connection(conn):
 admin_routes = Blueprint('admin_routes', __name__, url_prefix='/admin')
 
 # Import your database connection function
-from app import get_db_connection
+from utils import get_db_connection, login_required
+
 
 # Create an admin blueprint
 admin_routes = Blueprint('admin', __name__, url_prefix='/admin')

@@ -9,7 +9,8 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from functools import wraps
 
 # Import your database connection function
-from app import get_db_connection, login_required
+from utils import get_db_connection, login_required
+
 
 # Initialize Stripe with your API key
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
