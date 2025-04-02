@@ -126,7 +126,7 @@ def supabase_test():
 # Triggering redeploy on Railway
 
 
-def init_db():
+#def init_db():
     with app.app_context():
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -353,7 +353,7 @@ def match_orders():
 # ✅ FIXED: Ensure database initializes only on startup
 
 # Then call it after defining it
-with app.app_context():
+#with app.app_context():
     init_db()
 
 
