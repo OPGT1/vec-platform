@@ -158,6 +158,12 @@ import urllib.parse as urlparse
 def ping():
     return "pong", 200
 
+from datetime import datetime
+
+@app.context_processor
+def inject_now():
+    return {'now': datetime.utcnow()}
+
 
 @app.route("/supabase-test")
 def supabase_test():
