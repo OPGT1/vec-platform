@@ -102,11 +102,6 @@ def login():
     # Add this return statement for the GET request case
     return render_template("login.html")
 
-@app.route("/forgot_password")
-def forgot_password():
-    return render_template("forgot_password.html")
-
-# Add this route to your app.py file
 
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
