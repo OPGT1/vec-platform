@@ -1,17 +1,12 @@
 # routes/auth_routes.py
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
-import os
-from supabase import create_client
-from utils import get_db_connection, login_required
+import psycopg2
+import psycopg2.extras
+from utils import get_db_connection, login_required, supabase
 
 # Create blueprint
 auth_routes = Blueprint('auth_routes', __name__)
-
-# Supabase setup
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # SIGNUP
 @auth_routes.route("/signup", methods=["GET", "POST"])
@@ -23,26 +18,30 @@ def signup():
         password = request.form.get("password")
 
         # Create Supabase user account
-        result = supabase.auth.sign_up({"email": email, "password": password})
+        try:
+            result = supabase().auth.sign_up({"email": email, "password": password})
 
-        if result.get("error"):
-            return jsonify({"error": result["error"]["message"]}), 400
+            if result.get("error"):
+                return jsonify({"error": result["error"]["message"]}), 400
 
-        user_id = result["user"]["id"]
-        session["user_id"] = user_id
+            user_id = result["user"]["id"]
+            session["user_id"] = user_id
 
-        # Add extended info to your users table
-        supabase.table("users").insert({
-            "id": user_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "balance": 0,
-            "is_admin": False
-        }).execute()
+            # Add extended info to your users table
+            supabase().table("users").insert({
+                "id": user_id,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "balance": 0,
+                "is_admin": False
+            }).execute()
 
-        session["user_id"] = user_id
-        return redirect("/dashboard")
+            session["user_id"] = user_id
+            return redirect("/dashboard")
+        except Exception as e:
+            flash(f"An error occurred during signup: {str(e)}", "danger")
+            return redirect(url_for("auth_routes.signup"))
 
     return render_template("register.html")
 
@@ -53,19 +52,24 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        result = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password
-        })
+        try:
+            result = supabase().auth.sign_in_with_password({
+                "email": email,
+                "password": password
+            })
 
-        if result.get("error"):
-            return jsonify({"error": result["error"]["message"]}), 401
+            if result.get("error"):
+                flash("Invalid email or password", "danger")
+                return redirect(url_for("auth_routes.login"))
 
-        user_id = result["user"]["id"]
-        session["user_id"] = user_id
-        session["email"] = email
+            user_id = result["user"]["id"]
+            session["user_id"] = user_id
+            session["email"] = email
 
-        return redirect("/dashboard")
+            return redirect("/dashboard")
+        except Exception as e:
+            flash(f"An error occurred during login: {str(e)}", "danger")
+            return redirect(url_for("auth_routes.login"))
         
     # Add this return statement for the GET request case
     return render_template("login.html")
@@ -109,17 +113,14 @@ def forgot_password():
     
     return render_template("forgot_password.html")
 
-# LOGOUT
-@auth_routes.route("/logout")
-def logout():
-    session.clear()
-    flash("You have been logged out.", "success")
-    return redirect(url_for("auth_routes.login"))
-
 # DASHBOARD
 @auth_routes.route("/dashboard")
 @login_required
 def dashboard():
+    if "user_id" not in session:
+        flash("You must be logged in to view this page.", "warning")
+        return redirect(url_for("auth_routes.login"))
+
     user_id = session["user_id"]
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -149,8 +150,12 @@ def dashboard():
         balance = balance_result["total_received"] - balance_result["total_sent"]
         
         # Get current VEC price
-        from marketplace_routes import get_current_vec_price
-        vec_price = get_current_vec_price()
+        cursor.execute("SELECT value, effective_date FROM prices ORDER BY effective_date DESC LIMIT 1")
+        try:
+            vec_price = cursor.fetchone()
+        except:
+            from datetime import datetime
+            vec_price = {"value": 5.00, "effective_date": datetime.now()}
 
         # Environmental impact calculations
         total_kwh = float(balance) * 10  # Assuming 1 VEC = 10 kWh
@@ -267,7 +272,3 @@ def send_credits():
 
     flash(f"Credits sent successfully! A trading fee of {fee_amount:.2f} VEC was applied.", "success")
     return redirect(url_for("auth_routes.dashboard"))
-
-# Fix missing imports
-import psycopg2
-import psycopg2.extras

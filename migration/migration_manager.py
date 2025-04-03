@@ -150,35 +150,3 @@ class MigrationManager:
         
         print(f"Created migration file: {filepath}")
         return filepath
-
-# Example migrations:
-
-# migrations/20250401120000_add_user_verified_field.sql
-"""
--- Migration: add_user_verified_field
--- Created at: 2025-04-01T12:00:00
-
--- Add verified field to users
-ALTER TABLE users ADD COLUMN verified BOOLEAN DEFAULT FALSE;
-
--- Add index on verified field
-CREATE INDEX idx_users_verified ON users(verified);
-"""
-
-# migrations/20250401120100_add_notification_table.sql
-"""
--- Migration: add_notification_table
--- Created at: 2025-04-01T12:01:00
-
--- Create notifications table
-CREATE TABLE notifications (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Add index for fast lookup by user
-CREATE INDEX idx_notifications_user_id ON notifications(user_id);
-"""

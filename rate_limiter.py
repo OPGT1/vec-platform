@@ -3,20 +3,25 @@
 import time
 from flask import request, g, jsonify
 from functools import wraps
-import redis
 import os
 
-# Configure Redis client
-redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-
+# Try to import Redis, but don't crash if it's not available
 try:
-    redis_client = redis.from_url(redis_url)
-    redis_available = True
-except:
+    import redis
+    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    try:
+        redis_client = redis.from_url(redis_url)
+        redis_available = True
+        print("Redis connection successful!")
+    except Exception as e:
+        redis_available = False
+        print(f"Warning: Redis connection failed ({str(e)}). Using in-memory rate limiting (not suitable for production).")
+except ImportError:
     redis_available = False
-    print("Warning: Redis not available. Using in-memory rate limiting (not suitable for production).")
-    # Fallback to in-memory storage for rate limiting
-    rate_limit_storage = {}
+    print("Warning: Redis package not installed. Using in-memory rate limiting (not suitable for production).")
+
+# Fallback to in-memory storage for rate limiting
+rate_limit_storage = {}
 
 class RateLimiter:
     """Rate limiter to prevent API abuse."""
@@ -137,19 +142,3 @@ def rate_limit(limiter=None, key_func=None):
             return f(*args, **kwargs)
         return wrapped
     return decorator
-
-# Example usage in routes:
-"""
-@api_routes.route('/burn', methods=['POST'])
-@rate_limit(limiter=strict_limiter)  # Stricter limit for expensive operations
-@api_auth_required
-def burn_certificates():
-    # Route implementation
-    pass
-
-@api_routes.route('/order_book')
-@rate_limit()  # Default rate limit
-def order_book():
-    # Route implementation
-    pass
-"""

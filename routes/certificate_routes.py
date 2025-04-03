@@ -49,13 +49,11 @@ def burn_credits():
                 # Create certificate record
                 cursor.execute("""
                     INSERT INTO burn_certificates (user_id, amount, recipient_name, recipient_email, burn_date)
-                    VALUES (%s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, NOW()) RETURNING id
                 """, (user_id, amount, certificate_name, certificate_email))
                 
+                certificate_id = cursor.fetchone()[0]
                 conn.commit()
-                
-                # Get the ID of the newly created certificate
-                certificate_id = cursor.lastrowid
                 
                 # Calculate environmental impact for certificate
                 kwh_equivalent = amount * 10  # 1 VEC = 10 kWh
@@ -144,31 +142,9 @@ def burn_summary():
         cur.close()
         conn.close()
         data = [
-            {"recipient_name": row[0], "recipient_email": row[1], "total_kwh": float(row[2])} 
+            {"recipient_name": row[0], "recipient_email": row[1], "total_kwh": float(row[2]) * 10} 
             for row in results
         ]
         return jsonify(data), 200
     except Exception as e:
         return jsonify({"message": f"Error fetching burn summary: {str(e)}"}), 500
-
-# API BURN
-@certificate_routes.route('/api/burn', methods=['POST'])
-@login_required
-def api_burn_certificates():
-    data = request.get_json()
-    amount = data.get('amount')
-    recipient_name = data.get('recipient_name')
-    recipient_email = data.get('recipient_email')
-    certificate_hash = data.get('certificate_hash')
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO burn_certificates (user_id, amount, recipient_name, recipient_email, certificate_hash)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (session.get("user_id"), amount, recipient_name, recipient_email, certificate_hash))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return jsonify({'message': 'Burn recorded successfully.'}), 200

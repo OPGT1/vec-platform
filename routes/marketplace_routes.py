@@ -38,7 +38,11 @@ def place_order():
 
     # If selling, check balance first
     if order_type == "sell":
-        cursor.execute("SELECT balance FROM users WHERE id = %s", (user_id,))
+        cursor.execute("""
+            SELECT COALESCE((SELECT SUM(amount) FROM transactions WHERE receiver_id = %s), 0)
+                   - COALESCE((SELECT SUM(amount) FROM transactions WHERE sender_id = %s), 0)
+            AS balance
+        """, (user_id, user_id))
         user_balance = cursor.fetchone()[0]
 
         if user_balance < amount:
@@ -90,22 +94,21 @@ def match_orders():
         fee_amount = trade_amount * trading_fee_rate
         seller_net_amount = trade_amount - fee_amount  
 
-        cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (trade_amount, buyer))
-        cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (seller_net_amount, seller))
-        cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (fee_amount, admin_id))  
-
-        cursor.execute("UPDATE orders SET status = 'filled' WHERE id = %s", (buy_id,))
-        cursor.execute("UPDATE orders SET status = 'filled' WHERE id = %s", (sell_id,))
-
+        # Update buyer balance
         cursor.execute("""
             INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type)
             VALUES (%s, %s, %s, 'market_trade')
         """, (buyer, seller, trade_amount))
 
+        # Record fee transaction
         cursor.execute("""
             INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type)
             VALUES (%s, %s, %s, 'trading_fee')
         """, (seller, admin_id, fee_amount))
+
+        # Update order status
+        cursor.execute("UPDATE orders SET status = 'filled' WHERE id = %s", (buy_id,))
+        cursor.execute("UPDATE orders SET status = 'filled' WHERE id = %s", (sell_id,))
 
     conn.commit()
     
@@ -132,8 +135,8 @@ def order_book():
     return jsonify([
         {
             "order_type": o[0],
-            "price": o[1],
-            "amount": o[2]
+            "price": float(o[1]) if o[1] else 0,
+            "amount": float(o[2]) if o[2] else 0
         } for o in orders
     ])
 
@@ -159,15 +162,10 @@ def get_current_vec_price():
 @marketplace_routes.route('/credits')
 def credits():
     try:
-        from supabase import create_client
-        import os
+        # Use centralized Supabase client
+        from utils import supabase
         
-        # Supabase setup
-        SUPABASE_URL = os.environ.get("SUPABASE_URL")
-        SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        
-        data = supabase.table('users').select("email, balance").execute()
+        data = supabase().table('users').select("email, balance").execute()
         return jsonify({"data": data.data})
     except Exception as e:
         return jsonify({"error": str(e)})

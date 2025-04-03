@@ -12,10 +12,29 @@ admin_routes = Blueprint('admin_routes', __name__)
 def admin_required(f):
     @login_required
     def decorated_function(*args, **kwargs):
-        if session.get("user_id") != 2:  # Assuming admin ID is 2
-            flash("Unauthorized access.", "danger")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Check if user is admin
+            cursor.execute("SELECT is_admin FROM users WHERE id = %s", (session["user_id"],))
+            user = cursor.fetchone()
+            
+            if not user or not user[0]:
+                flash("You do not have permission to access this page.", "danger")
+                return redirect(url_for("auth_routes.dashboard"))
+                
+        except Exception as e:
+            conn.rollback()
+            flash(f"An error occurred: {e}", "danger")
             return redirect(url_for("auth_routes.dashboard"))
+            
+        finally:
+            cursor.close()
+            conn.close()
+            
         return f(*args, **kwargs)
+    
     decorated_function.__name__ = f.__name__
     return decorated_function
 
@@ -93,19 +112,53 @@ def admin_burn_activity():
         cur.close()
         conn.close()
 
-# SUPABASE TEST
-@admin_routes.route("/supabase-test")
+# ADMIN USERS
+@admin_routes.route('/admin/users', methods=["GET"])
 @admin_required
-def supabase_test():
-    import os
-    from supabase import create_client, Client
+def admin_users():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
-    supabase: Client = create_client(url, key)
+    cursor.execute("""
+        SELECT id, email, first_name, last_name, is_admin
+        FROM users
+        ORDER BY id
+    """)
+    
+    users = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template("admin_users.html", users=users)
 
-    try:
-        response = supabase.table("new_table").select("*").limit(1).execute()
-        return jsonify({"message": "Connection successful!", "data": response.data})
-    except Exception as e:
-        return jsonify({"error": str(e)})
+# TOGGLE ADMIN STATUS
+@admin_routes.route('/admin/toggle_admin/<int:user_id>', methods=["POST"])
+@admin_required
+def toggle_admin(user_id):
+    # Don't allow toggling your own admin status
+    if user_id == session["user_id"]:
+        flash("You cannot change your own admin status.", "danger")
+        return redirect(url_for("admin_routes.admin_users"))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Get current admin status
+    cursor.execute("SELECT is_admin FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for("admin_routes.admin_users"))
+    
+    # Toggle admin status
+    new_status = not user[0]
+    cursor.execute("UPDATE users SET is_admin = %s WHERE id = %s", (new_status, user_id))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    flash(f"User admin status updated successfully.", "success")
+    return redirect(url_for("admin_routes.admin_users"))
