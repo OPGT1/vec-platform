@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="/static/logo.png" type="image/png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}VEC Platform{% endblock %}</title>
@@ -264,6 +265,9 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <header style="text-align: center; padding: 10px;">
+        <img src="/static/logo.png" alt="VEC Logo" style="height: 60px;">
+    </header>
     <nav class="navbar">
         <a href="{{ url_for('auth_routes.login') }}" class="logo"></a>
             <i class="fas fa-leaf"></i>
@@ -276,7 +280,7 @@
             <a href="{{ url_for('auth_routes.logout') }}">Logout</a>
             {% else %}
             <a href="{{ url_for('auth_routes.login') }}" class="logo">
-                <a href="{{ url_for('signup') }}">Sign Up</a>
+                <a href="{{ url_for('auth_routes.signup') }}">Sign Up</a>
             {% endif %}
         </div>
     </nav>

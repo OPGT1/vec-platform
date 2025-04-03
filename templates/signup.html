@@ -103,7 +103,7 @@
         <p>Join the sustainable energy revolution</p>
     </div>
     
-    <form method="POST" action="{{ url_for('signup') }}">
+    <form method="POST" action="{{ url_for('auth_routes.signup') }}">
         <div class="name-fields">
             <div class="form-group">
                 <label for="first_name">First Name</label>
@@ -152,7 +152,7 @@
     </div>
     
     <div class="links">
-        <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+        <p>Already have an account? <a href="{{ url_for('auth_routes.login') }}">Login</a></p>
     </div>
 </div>
 {% endblock %}

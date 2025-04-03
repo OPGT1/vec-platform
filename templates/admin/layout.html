@@ -148,7 +148,7 @@
                 <h1>{% block header %}Admin Dashboard{% endblock %}</h1>
                 <div>
                     <span>Welcome, {{ session.email }}</span>
-                    <a href="{{ url_for('logout') }}" class="btn" style="margin-left: 10px;">Logout</a>
+                    <a href="{{ url_for('auth_routes.logout') }}" class="btn" style="margin-left: 10px;">Logout</a>
                 </div>
             </div>
             

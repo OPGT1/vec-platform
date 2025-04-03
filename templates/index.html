@@ -24,7 +24,8 @@
             </ul>
         </div>
 
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        href="{{ url_for('auth_routes.logout') }}"
+
 
         <div class="status-message">JavaScript is working! 🚀</div>
         
@@ -35,8 +36,7 @@
         <div class="balance">
           My Balance: <span class="balance-amount">${{ balance }}</span>
         </div>
-        
-        <a href="{{ url_for('send_credits_page') }}" class="btn">Send Credits</a>
+        href="{{ url_for('auth_routes.send_credits_page') }}"
 
         <!-- Transaction History -->
         <div class="card mt-4">

@@ -9,7 +9,7 @@
 <body>
     <div class="header-area">
         <div class="user-welcome">Welcome, {{ email }}</div>
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        <a href="{{ url_for('auth_routes.logout') }}" class="logout-link">Logout</a>
     </div>
 
     <h2>My Burn Certificates</h2>
@@ -39,7 +39,7 @@
                 <td>{{ (cert.amount * 10 * 0.7)|round(2) }} kg</td>
                 <td>{{ cert.burn_date.strftime('%Y-%m-%d') }}</td>
                 <td>
-                    <a href="{{ url_for('certificate', certificate_id=cert.id) }}" class="btn btn-small">View</a>
+                    <a href="{{ url_for('certificate_routes.certificate', certificate_id=cert.id) }}" class="btn btn-small">View</a>
                 </td>
             </tr>
             {% endfor %}
@@ -63,13 +63,13 @@
     {% else %}
         <div class="empty-state">
             <p>You haven't burned any VEC credits yet.</p>
-            <a href="{{ url_for('burn_credits') }}" class="btn">Burn Credits Now</a>
+            <a href="{{ url_for('certificate_routes.burn_credits') }}" class="btn">Burn Credits Now</a>
         </div>
     {% endif %}
     
     <div class="navigation-links">
-        <a href="{{ url_for('burn_credits') }}" class="btn">Burn More Credits</a>
-        <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+        <a href="{{ url_for('certificate_routes.burn_credits') }}" class="btn">Burn More Credits</a>
+        <a href="{{ url_for('auth_routes.dashboard') }}" class="btn">Back to Dashboard</a>
     </div>
 </body>
 </html>

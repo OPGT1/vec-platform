@@ -9,7 +9,7 @@
 <body>
     <div class="header-area">
         <div class="user-welcome">Welcome, {{ email }}</div>
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        <a href="{{ url_for('auth_routes.logout') }}" class="logout-link">Logout</a>
     </div>
 
     <h2>Upload VEC Data</h2>
@@ -53,7 +53,7 @@
         </table>
         
         <div class="confirmation-form">
-            <form method="POST" action="{{ url_for('process_upload') }}">
+            <form method="POST" action="{{ url_for('upload_routes.process_upload') }}">
                 <input type="hidden" name="filename" value="{{ filename }}">
                 <input type="hidden" name="upload_type" value="{{ upload_type }}">
                 <button type="submit" class="btn">Confirm Import</button>
@@ -63,7 +63,7 @@
     {% endif %}
     
     <div class="navigation-links">
-        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        <a href="{{ url_for('auth_routes.dashboard') }}">Back to Dashboard</a>
     </div>
 </body>
 </html>

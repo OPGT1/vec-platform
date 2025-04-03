@@ -109,7 +109,7 @@
 <body>
     <div class="header-area">
         <div class="user-welcome">Welcome, {{ email }}</div>
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        <a href="{{ url_for('auth_routes.logout') }}" class="logout-link">Logout</a>
     </div>
 
     <div class="certificate-container">
@@ -165,8 +165,8 @@
     
     <div class="certificate-actions">
         <button onclick="window.print()" class="btn">Print Certificate</button>
-        <a href="{{ url_for('my_certificates') }}" class="btn">View All Certificates</a>
-        <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+        <a href="{{ url_for('certificate_routes.my_certificates') }}" class="btn">View All Certificates</a>
+        <a href="{{ url_for('auth_routes.dashboard') }}" class="btn">Back to Dashboard</a>
     </div>
 </body>
 </html>

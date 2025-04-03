@@ -9,11 +9,11 @@
 <body>
     <div class="header-area">
         <div class="user-welcome">Welcome, {{ email }}</div>
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        <a href="{{ url_for('auth_routes.logout') }}" class="logout-link">Logout</a>
     </div>
 
     <h2>Send Credits</h2>
-    <form action="{{ url_for('send_credits') }}" method="POST">
+    <form action="{{ url_for('auth_routes.send_credits') }}" method="POST">
         <div class="form-group">
             <label for="receiver_email">Receiver Email:</label>
             <input type="email" name="receiver_email" required>
@@ -32,7 +32,7 @@
     </div>
     
     <div class="navigation-links">
-        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        <a href="{{ url_for('auth_routes.dashboard') }}">Back to Dashboard</a>
     </div>
 </body>
 </html>

@@ -9,7 +9,7 @@
 <body>
     <div class="header-area">
         <div class="user-welcome">Welcome, {{ email }}</div>
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        <a href="{{ url_for('auth_routes.logout') }}" class="logout-link">Logout</a>
     </div>
 
     <h2>Burn VEC Credits</h2>
@@ -24,7 +24,7 @@
         </div>
     </div>
     
-    <form method="POST" action="{{ url_for('burn_credits') }}">
+    <form method="POST" action="{{ url_for('certificate_routes.burn_credits') }}">
         <div class="form-group">
             <label for="amount">Amount to Burn (VEC):</label>
             <input type="number" name="amount" id="amount" step="0.01" min="0.01" required>
@@ -66,8 +66,8 @@
     </div>
     
     <div class="navigation-links">
-        <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
-        <a href="{{ url_for('my_certificates') }}">View My Certificates</a>
+        <a href="{{ url_for('auth_routes.dashboard') }}">Back to Dashboard</a>
+        <a href="{{ url_for('certificate_routes.my_certificates') }}">View My Certificates</a>
     </div>
     
     <script>
