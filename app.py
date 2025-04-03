@@ -107,6 +107,12 @@ def create_app(config_name='default'):
 # Create the application
 app = create_app()
 
+# In app.py, where you import redis_available
+try:
+    from rate_limiter import redis_available
+except ImportError:
+    redis_available = False
+
 if __name__ == "__main__":
     # Run the application
     port = int(os.environ.get("PORT", 5000))
