@@ -265,17 +265,17 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="{{ url_for('login') }}" class="logo">
+        <a href="{{ url_for('auth_routes.login') }}" class="logo"></a>
             <i class="fas fa-leaf"></i>
             <span>VEC Platform</span>
         </a>
         <div class="nav-links">
             {% if 'user_id' in session %}
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('marketplace') }}">Marketplace</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('auth_routes.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('marketplace_routes.marketplace') }}">Marketplace</a>
+            <a href="{{ url_for('auth_routes.logout') }}">Logout</a>
             {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('auth_routes.login') }}" class="logo">
                 <a href="{{ url_for('signup') }}">Sign Up</a>
             {% endif %}
         </div>
