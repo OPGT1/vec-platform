@@ -43,7 +43,7 @@ def signup():
             flash(f"An error occurred during signup: {str(e)}", "danger")
             return redirect(url_for("auth_routes.signup"))
 
-    return render_template("register.html")
+    return render_template("signup.html")
 
 # LOGIN
 @auth_routes.route("/login", methods=["GET", "POST"])
