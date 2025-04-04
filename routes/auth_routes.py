@@ -58,21 +58,23 @@ def login():
                 "password": password
             })
 
-            if result.get("error"):
+            if result.error:  # Accessing as attribute, not dict
                 flash("Invalid email or password", "danger")
                 return redirect(url_for("auth_routes.login"))
 
-            user_id = result["user"]["id"]
+            user_id = result.user.id  # Authenticated user's ID
             session["user_id"] = user_id
             session["email"] = email
 
             return redirect("/dashboard")
+
         except Exception as e:
             flash(f"An error occurred during login: {str(e)}", "danger")
             return redirect(url_for("auth_routes.login"))
-        
-    # Add this return statement for the GET request case
+
     return render_template("login.html")
+
+        
 
 # FORGOT PASSWORD
 @auth_routes.route("/forgot_password", methods=["GET", "POST"])
