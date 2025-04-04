@@ -46,7 +46,6 @@ def signup():
     return render_template("signup.html")
 
 # LOGIN
-@auth_routes.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form.get("email")
@@ -58,11 +57,11 @@ def login():
                 "password": password
             })
 
-            if result.error:  # Accessing as attribute, not dict
+            if not result.user:
                 flash("Invalid email or password", "danger")
                 return redirect(url_for("auth_routes.login"))
 
-            user_id = result.user.id  # Authenticated user's ID
+            user_id = result.user.id
             session["user_id"] = user_id
             session["email"] = email
 
@@ -73,6 +72,7 @@ def login():
             return redirect(url_for("auth_routes.login"))
 
     return render_template("login.html")
+
 
         
 
