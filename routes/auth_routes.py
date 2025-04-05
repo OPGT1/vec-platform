@@ -184,9 +184,6 @@ def dashboard():
         cursor.close()
         conn.close()
 
-@auth_routes.route("/dashboard")
-def dashboard():
-    return render_template("dashboard.html")  # or whatever template you want
 
 # DASHBOARD ANALYTICS
 @auth_routes.route("/dashboard-analytics")
