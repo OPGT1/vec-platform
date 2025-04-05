@@ -46,6 +46,7 @@ def signup():
     return render_template("signup.html")
 
 # LOGIN
+@auth_routes.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "POST":
         email = request.form.get("email")
