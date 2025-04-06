@@ -37,12 +37,12 @@ def signup():
                 "is_admin": False
             }).execute()
 
-            return redirect("/dashboard")
+            return redirect("/auth_routes.dashboard")
         except Exception as e:
             flash(f"An error occurred during signup: {str(e)}", "danger")
             return redirect(url_for("auth_routes.signup"))
 
-    return render_template("signup.html")
+    return render_template("auth_routes.signup.html")
 
 
 # LOGIN
@@ -72,7 +72,7 @@ def login():
             flash(f"An error occurred during login: {str(e)}", "danger")
             return redirect(url_for("auth_routes.login"))
 
-    return render_template("login.html")
+    return render_template("auth_routes.login.html")
 
 
         
@@ -114,7 +114,7 @@ def forgot_password():
             cursor.close()
             conn.close()
     
-    return render_template("forgot_password.html")
+    return render_template("auth.routes.forgot_password.html")
 
 # DASHBOARD
 @auth_routes.route("/dashboard")
