@@ -66,7 +66,7 @@ def login():
             session["user_id"] = user_id
             session["email"] = email
 
-            return redirect("/dashboard")
+            return redirect(url_for("auth_routes.dashboard"))
 
         except Exception as e:
             flash(f"An error occurred during login: {str(e)}", "danger")
