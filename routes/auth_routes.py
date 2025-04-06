@@ -9,6 +9,7 @@ from utils import get_db_connection, login_required, supabase
 auth_routes = Blueprint('auth_routes', __name__)
 
 # SIGNUP
+# SIGNUP
 @auth_routes.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
@@ -17,17 +18,16 @@ def signup():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # Create Supabase user account
         try:
             result = supabase().auth.sign_up({"email": email, "password": password})
 
-            if result.get("error"):
-                return jsonify({"error": result["error"]["message"]}), 400
+            if result.error:
+                flash(result.error.message, "danger")
+                return redirect(url_for("auth_routes.signup"))
 
-            user_id = result["user"]["id"]
+            user_id = result.user.id
             session["user_id"] = user_id
 
-            # Add extended info to your users table
             supabase().table("users").insert({
                 "id": user_id,
                 "first_name": first_name,
@@ -37,13 +37,13 @@ def signup():
                 "is_admin": False
             }).execute()
 
-            session["user_id"] = user_id
             return redirect("/dashboard")
         except Exception as e:
             flash(f"An error occurred during signup: {str(e)}", "danger")
             return redirect(url_for("auth_routes.signup"))
 
     return render_template("signup.html")
+
 
 # LOGIN
 @auth_routes.route('/login', methods=['GET', 'POST'])
